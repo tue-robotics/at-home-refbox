@@ -85,6 +85,8 @@ class RefBox extends React.Component {
     }
   }
 
+  // Websocket use based on 
+  // https://dev.to/finallynero/using-websockets-in-react-4fkp
   // instance of websocket connection as a class property
   ws = new WebSocket('ws://localhost:6789')
 

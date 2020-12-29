@@ -19,7 +19,7 @@ function AudienceHeader(props) {
 function ChallengeDescription(props) {
   return (
     <div>
-      <h2>{props.name}</h2>
+      <h2>{props.metadata.challenge}</h2>
       <p>{props.info.description}</p>
     </div>
   );
@@ -28,6 +28,7 @@ function ChallengeDescription(props) {
 
 class CurrentScoreTable extends React.Component {
   constructor(props) {
+    console.log('CurrentScoreTable constructor');
     super(props);
     this.state = {
       scoreTable: props.interface.getScoreTable(),
@@ -40,8 +41,9 @@ class CurrentScoreTable extends React.Component {
     const rows = scoreTable.map((scoreItem, idx) => {
       let scoreValue = currentScore ? currentScore[scoreItem.key] : 0;
       const score = String(scoreValue) + '/' + String(scoreItem.maxScore);
+      let style = scoreItem.key === this.props.highlightScore ? 'bg-info' : 'bg-white';
       return (
-        <tr key={idx}>
+        <tr key={idx} className={style}>
           <th>{scoreItem.description}</th>
           <th style={{textAlign: 'center'}}>{score}</th>
         </tr>
@@ -127,6 +129,7 @@ class AudienceTables extends React.Component {
               interface={this.props.interface}
               metadata={this.props.metadata}
               currentScore={this.props.currentScore}
+              highlightScore={this.props.highlightScore}
             />
           </div>
         </div>
@@ -158,9 +161,12 @@ class AudienceInfo extends React.Component {
       },
       challengeInfo: challengeInfo,
       currentScore: {},
+      highlightScore: null,
     } 
   }
 
+  // Websocket use based on 
+  // https://dev.to/finallynero/using-websockets-in-react-4fkp
   // instance of websocket connection as a class property
   ws = new WebSocket('ws://localhost:6789')
 
@@ -187,9 +193,20 @@ class AudienceInfo extends React.Component {
   }
 
   updateScores(data) {
+    let newScore = data[this.state.metadata.arena];
+    let changedScore = null;
+    for (var key in newScore) {
+      if (newScore[key] !== this.state.currentScore[key]) {
+        changedScore = parseInt(key);
+      }
+    }
     this.setState({
-      currentScore: data[this.state.metadata.arena]
+      currentScore: newScore,
+      highlightScore: changedScore,
     });
+    setTimeout(function() { //Start the timer
+      this.setState({highlightScore: null}); //After 1 second, disable highlight
+    }.bind(this), 1000);
   }
 
   render() {
@@ -206,6 +223,7 @@ class AudienceInfo extends React.Component {
           metadata={this.state.metadata}
           interface={this.props.interface}
           currentScore={this.state.currentScore}
+          highlightScore={this.state.highlightScore}
         />
       </div>
     );

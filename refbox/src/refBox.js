@@ -3,31 +3,23 @@ import Container from 'react-bootstrap/Container';
 
 
 class Action extends React.Component {
-  constructor(props) {
-    super(props)
-    this.state = {
-      currentScore: 0
-    }
-  }
-
   increment() {
-    this.setState({
-      currentScore: this.state.currentScore + this.props.scoreIncrement
-    });
+    let newScore = this.props.currentScore + this.props.scoreIncrement;
+    this.props.onScore(this.props.key2, newScore);
   }
 
   decrement() {
-    this.setState({
-      currentScore: this.state.currentScore - this.props.scoreIncrement
-    });
+    let newScore = this.props.currentScore - this.props.scoreIncrement
+    this.props.onScore(this.props.key2, newScore);
   }
 
   render() {
+    let currentScore = this.props.currentScore;
     let decrementDescription = "-"
     let incrementDescription = "+"
-    let scoreDescription = String(this.state.currentScore) + '/' + String(this.props.maxScore)
-    let canIncrement = this.state.currentScore < this.props.maxScore;
-    let canDecrement = this.state.currentScore > 0;
+    let scoreDescription = String(currentScore) + '/' + String(this.props.maxScore)
+    let canIncrement = currentScore < this.props.maxScore;
+    let canDecrement = currentScore > 0;
     return (
       <tr>
         <th>{this.props.description}</th>
@@ -44,27 +36,24 @@ class ScoreTable extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      scoreTable: []
+      scoreTable: props.interface.getScoreTable(),
     };
-    props.interface.registerScoreTableCallback(this.scoreTableCallback);
-  }
 
-  scoreTableCallback = (scoreTable) => {
-    console.log("Setting score table, length: " + String(scoreTable.length));
-    this.setState({
-      scoreTable: scoreTable
-    });
   }
 
  render() {
-  const scoreTable = this.props.interface.getScoreTable();
+  const scoreTable = this.state.scoreTable;
   const actions = scoreTable.map((action, index) => {
+    let scoreValue = this.props.currentScore ? this.props.currentScore[action.key] : 0; 
     return (
     <Action
       key={action.key}
+      key2={action.key}
       description={action.description}
       scoreIncrement={action.scoreIncrement}
+      currentScore={scoreValue}
       maxScore={action.maxScore}
+      onScore={this.props.onScore}
     />
     );  
   });
@@ -96,6 +85,57 @@ class RefBox extends React.Component {
     }
   }
 
+  // instance of websocket connection as a class property
+  ws = new WebSocket('ws://localhost:6789')
+
+  componentDidMount() {
+    this.ws.onopen = () => {
+      // on connecting, do nothing but log it to the console
+      console.log('connected')
+    }
+
+    this.ws.onmessage = evt => {
+      // listen to data sent from the websocket server
+      const message = JSON.parse(evt.data)
+      this.setState({dataFromServer: message})
+      if ('current_scores' in message) {
+        this.updateScores(message.current_scores);
+      }
+    }
+
+    this.ws.onclose = () => {
+      console.log('disconnected')
+      // automatically try to reconnect on connection loss
+    }
+
+  }
+
+  updateScores(data) {
+    this.setState({
+      currentScore: data[this.state.arena]
+    });
+  }
+
+  sendMessage = (data) => {
+    try {
+        this.ws.send(JSON.stringify(data));
+    } catch (error) {
+        console.log(error) // catch error
+    }
+  }
+
+  // ToDo: only send the score 'event'
+  sendScore = (key, value) => {
+    let data = {
+      'arena': this.state.arena,
+      'score': {
+        'key': key,
+        'value': value,
+      }
+    }
+    this.sendMessage(data);
+  }
+
   render()
   {
     let arenaDescription = 'Arena: ' + this.state.arena;
@@ -107,7 +147,12 @@ class RefBox extends React.Component {
         <div>{this.state.challenge}</div>
         <div>{this.state.team}</div>
         <div>{attemptDescription}</div>
-        <ScoreTable interface={this.props.interface}/>
+        <ScoreTable 
+          interface={this.props.interface}
+          websocket={this.ws}
+          onScore={this.sendScore}
+          currentScore={this.state.currentScore}
+        />
       </div>
       );
   }

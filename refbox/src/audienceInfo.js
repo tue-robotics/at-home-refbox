@@ -31,16 +31,15 @@ class CurrentScoreTable extends React.Component {
     super(props);
     this.state = {
       scoreTable: props.interface.getScoreTable(),
-      currentScore: props.interface.getCurrentScore(props.metadata.arena),
     };
   }
 
   render() {
-
     const scoreTable = this.state.scoreTable;
-    const currentScore = this.state.currentScore;
+    const currentScore = this.props.currentScore;
     const rows = scoreTable.map((scoreItem, idx) => {
-      const score = String(currentScore[scoreItem.key]) + '/' + String(scoreItem.maxScore);
+      let scoreValue = currentScore ? currentScore[scoreItem.key] : 0;
+      const score = String(scoreValue) + '/' + String(scoreItem.maxScore);
       return (
         <tr key={idx}>
           <th>{scoreItem.description}</th>
@@ -127,6 +126,7 @@ class AudienceTables extends React.Component {
             <CurrentScoreTable
               interface={this.props.interface}
               metadata={this.props.metadata}
+              currentScore={this.props.currentScore}
             />
           </div>
         </div>
@@ -157,7 +157,39 @@ class AudienceInfo extends React.Component {
         attempt: metadata.attempt,
       },
       challengeInfo: challengeInfo,
+      currentScore: {},
     } 
+  }
+
+  // instance of websocket connection as a class property
+  ws = new WebSocket('ws://localhost:6789')
+
+  componentDidMount() {
+    this.ws.onopen = () => {
+      // on connecting, do nothing but log it to the console
+      console.log('connected')
+    }
+
+    this.ws.onmessage = evt => {
+      // listen to data sent from the websocket server
+      const message = JSON.parse(evt.data)
+      this.setState({dataFromServer: message})
+      if ('current_scores' in message) {
+        this.updateScores(message.current_scores);
+      }
+    }
+
+    this.ws.onclose = () => {
+      console.log('disconnected')
+      // automatically try to reconnect on connection loss
+    }
+
+  }
+
+  updateScores(data) {
+    this.setState({
+      currentScore: data[this.state.metadata.arena]
+    });
   }
 
   render() {
@@ -173,6 +205,7 @@ class AudienceInfo extends React.Component {
         <AudienceTables
           metadata={this.state.metadata}
           interface={this.props.interface}
+          currentScore={this.state.currentScore}
         />
       </div>
     );

@@ -78,8 +78,16 @@ current_scores = {
 }
 
 
+def update_score(data):
+    global current_scores
+    arena_score = current_scores[data["arena"]]
+    arena_score[data["score"]["key"]] = data["score"]["value"]
+
+
 def state_event():
-    return json.dumps({"type": "state", **STATE})
+    data = {"type": "state", **STATE}
+    data["current_scores"] = current_scores
+    return json.dumps(data)
 
 
 def users_event():
@@ -120,9 +128,12 @@ async def counter(websocket, path):
     try:
         await websocket.send(state_event())
         async for message in websocket:
-            print("Received message")
+            print(f"Received message: {message}")
             data = json.loads(message)
-            if data["action"] == "minus":
+            if "score" in data:
+                update_score(data)
+                await notify_state()
+            elif data["action"] == "minus":
                 STATE["value"] -= 1
                 await notify_state()
             elif data["action"] == "plus":

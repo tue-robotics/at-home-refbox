@@ -33,16 +33,8 @@ class Action extends React.Component {
 
 
 class ScoreTable extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      scoreTable: props.interface.getScoreTable(),
-    };
-
-  }
-
  render() {
-  const scoreTable = this.state.scoreTable;
+  const scoreTable = this.props.scoreTable;
   const actions = scoreTable.map((action, index) => {
     let scoreValue = this.props.currentScore ? this.props.currentScore[action.key] : 0; 
     return (
@@ -57,7 +49,6 @@ class ScoreTable extends React.Component {
     />
     );  
   });
-  // <div>{actions}</div>
   return (
     <Container className='p-3 bg-white text-primary'>
       <table className="table table-bordered">
@@ -74,14 +65,14 @@ class ScoreTable extends React.Component {
 class RefBox extends React.Component {
   constructor(props) {
     super(props);
-    let arena = 'A';  // ToDo: don't hardcode arena
-    let metadata = props.interface.getMetaData(arena);
+    const arena = 'A';  // ToDo: don't hardcode arena
     this.state = {
-      event: metadata.event,
       arena: arena,
-      challenge: metadata.challenge,
-      team: metadata.team,
-      attempt: metadata.attempt,
+      event: '',
+      challenge: '',
+      team: '',
+      attempt: '',
+      scoreTable: [],
     }
   }
 
@@ -100,8 +91,15 @@ class RefBox extends React.Component {
       // listen to data sent from the websocket server
       const message = JSON.parse(evt.data)
       this.setState({dataFromServer: message})
-      if ('current_scores' in message) {
-        this.updateScores(message.current_scores);
+      if ('metadata' in message && this.state.arena in message.metadata) {
+        this.updateMetaData(message.metadata[this.state.arena])
+      }
+      if ('score_table' in message) {
+        this.updateScoreTable(message.score_table)
+      }
+      // ToDo: this might only work if score table has already been set
+      if ('current_scores' in message && this.state.arena in message.current_scores) {
+        this.updateScores(message.current_scores[this.state.arena]);
       }
     }
 
@@ -112,9 +110,22 @@ class RefBox extends React.Component {
 
   }
 
+  updateMetaData(metadata) {
+    this.setState({
+      event: metadata.event,
+      challenge: metadata.challenge,
+      team: metadata.team,
+      attempt: metadata.attempt,
+    })
+  }
+
+  updateScoreTable(data) {
+    this.setState({scoreTable: data});
+  }
+
   updateScores(data) {
     this.setState({
-      currentScore: data[this.state.arena]
+      currentScore: data
     });
   }
 
@@ -150,8 +161,7 @@ class RefBox extends React.Component {
         <div>{this.state.team}</div>
         <div>{attemptDescription}</div>
         <ScoreTable 
-          interface={this.props.interface}
-          websocket={this.ws}
+          scoreTable={this.state.scoreTable}
           onScore={this.sendScore}
           currentScore={this.state.currentScore}
         />

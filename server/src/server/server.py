@@ -19,7 +19,7 @@ STATE = {"value": 0}
 
 USERS = set()
 
-# Static data, retreived directly from the database
+# Static data, retrieved directly from the database
 score_table = [
   {"key": 123, "description": 'Enter arena', "scoreIncrement": 100, "maxScore": 100},
   {"key": 124, "description": 'Pick up drink', "scoreIncrement": 100, "maxScore": 300},
@@ -37,7 +37,7 @@ challenge_info = {
 
 # State: should 'live' server side in order to keep referee and audience clients in sync
 # Should support multiple arenas
-meta_data = {
+metadata = {
   "A":
     {
       "event": "RoboCup 2021, Bordeaux, France",
@@ -89,13 +89,22 @@ def state_event():
     data["current_scores"] = current_scores
     return json.dumps(data)
 
-
+# ToDo: update
+# * improve name
+# * should send (large amount of data) in case of
+#     * Registering a user
+#     * Updating settings
+# * data should contain everything that's specific per challenge (metadata, description, scoretable), currentscores
+#   and general: standings
+# * convenient to do this per arena, hence:
+#   data = {'A': {metadata: ..., score_table: ..., challenge_info: ..., current_scores: ...}, 'standings': ...}
 def users_event():
     data = {"type": "users", "count": len(USERS)}
-    data["meta_data"] = meta_data
+    data["metadata"] = metadata
     data["score_table"] = score_table
     data["challenge_info"] = challenge_info
     data["current_scores"] = current_scores
+    data["standings"] = standings
     return json.dumps(data)
 
 

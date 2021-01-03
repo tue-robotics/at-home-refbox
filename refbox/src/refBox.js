@@ -4,13 +4,11 @@ import Container from 'react-bootstrap/Container';
 
 class Action extends React.Component {
   increment() {
-    let newScore = this.props.currentScore + this.props.scoreIncrement;
-    this.props.onScore(this.props.key2, newScore);
+    this.props.onScore(this.props.key2, this.props.scoreIncrement);
   }
 
   decrement() {
-    let newScore = this.props.currentScore - this.props.scoreIncrement
-    this.props.onScore(this.props.key2, newScore);
+    this.props.onScore(this.props.key2, -this.props.scoreIncrement);
   }
 
   render() {

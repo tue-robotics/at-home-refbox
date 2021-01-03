@@ -32,6 +32,21 @@ def test_record_serialization_deserialization():
     assert original_record == recreated_record
 
 
+def test_record_serialization_comma():
+    metadata = MetaData('RoboCup 2021, Bordeaux, France', 'Tech United Eindhoven', 'Restaurant', 1)
+    original_record = Record(time.time(), metadata, SCORE_KEY, SCORE_INCREMENT)
+    csv = original_record.to_csv_string()
+    recreated_record = Record.from_csv_string(csv)
+    assert original_record == recreated_record
+
+
+def test_record_serialization_semicolon():
+    metadata = MetaData('RoboCup 2021; Bordeaux; France', 'Tech United Eindhoven', 'Restaurant', 1)
+    record = Record(time.time(), metadata, SCORE_KEY, SCORE_INCREMENT)
+    with pytest.raises(AssertionError):
+        record.to_csv_string()
+
+
 def test_register_score(tmpdir):
     register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
@@ -77,6 +92,15 @@ def test_load_from_file(tmpdir):
     register2 = ScoreRegister(os.path.join(tmpdir, "db.csv"))
     current_score = register2.get_score(METADATA, SCORE_TABLE)
     assert current_score[SCORE_KEY] == SCORE_INCREMENT
+
+
+def test_load_from_file_multiple_lines(tmpdir):
+    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
+    register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
+    register2 = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    current_score = register2.get_score(METADATA, SCORE_TABLE)
+    assert current_score[SCORE_KEY] == 2 * SCORE_INCREMENT
 
 
 def test_load_from_file_twice(tmpdir):

@@ -11,13 +11,15 @@
 import asyncio
 import json
 import logging
+import os
+
 import websockets
+
+from score_register import ScoreRegister
+from server_types import MetaData
 
 logging.basicConfig()
 
-STATE = {"value": 0}
-
-USERS = set()
 
 # Static data, retrieved directly from the database
 score_table = [
@@ -37,7 +39,7 @@ challenge_info = {
 
 # State: should 'live' server side in order to keep referee and audience clients in sync
 # Should support multiple arenas
-metadata = {
+METADATA = {
   "A":
     {
       "event": "RoboCup 2021, Bordeaux, France",
@@ -67,98 +69,101 @@ standings = [
 ]
 
 
-current_scores = {
-  "A": {
-    123: 0,
-    124: 0,
-    125: 0,
-    126: 0,
-    127: 0,
-  },
-}
+class Server(object):
+    def __init__(self):
+        self._clients = set()
+        self._score_register = self._create_score_register()
+
+    @staticmethod
+    def _create_score_register():
+        path = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
+        os.makedirs(path, exist_ok=True)
+        filename = os.path.join(path, "score_db.csv")
+        return ScoreRegister(filename)
+
+    async def serve(self, websocket, path):
+        # register(websocket) sends user_event() to websocket
+        await self._register(websocket)
+        print("Websocket registered")
+        try:
+            await websocket.send(self._get_score_message())
+            async for message in websocket:
+                print(f"Received message: {message}")
+                data = json.loads(message)
+                if "score" in data:
+                    self._on_score(data)
+                    await self._notify_state()
+                else:
+                    logging.error("unsupported event: {}", data)
+        finally:
+            await self._unregister(websocket)
+            print("Unregistered")
+
+    async def _register(self, websocket):
+        self._clients.add(websocket)
+        await self._notify_users()
+
+    async def _notify_users(self):
+        if self._clients:  # asyncio.wait doesn't accept an empty list
+            message = self._get_data_on_registration()
+            await asyncio.wait([client.send(message) for client in self._clients])
+            message = self._get_score_message()
+            await asyncio.wait([client.send(message) for client in self._clients])
+
+    # ToDo: update
+    # * improve name
+    # * should send (large amount of data) in case of
+    #     * Registering a user
+    #     * Updating settings
+    # * data should contain everything that's specific per challenge (metadata, description, scoretable), currentscores
+    #   and general: standings
+    # * convenient to do this per arena, hence:
+    #   data = {'A': {metadata: ..., score_table: ..., challenge_info: ..., current_scores: ...}, 'standings': ...}
+    @staticmethod
+    def _get_data_on_registration():
+        data = {
+            "metadata": METADATA,
+            "score_table": score_table,
+            "challenge_info": challenge_info,
+            "standings": standings,
+        }
+        return json.dumps(data)
+
+    def _on_score(self, data):
+        metadata = self._get_metadata(data["arena"])
+        self._score_register.register_score(
+            metadata=metadata, score_key=data["score"]["key"], score_increment=data["score"]["value"]
+        )
+
+    @staticmethod
+    def _get_metadata(arena):  # Shouldn't be static once setting metadata is possible
+        arena_metadata = METADATA[arena]
+        return MetaData(
+            arena_metadata["event"], arena_metadata["team"], arena_metadata["challenge"], arena_metadata["attempt"]
+        )
+
+    def _get_score_message(self):
+        arena = "A"  # ToDo: allow multiple arenas
+        metadata = self._get_metadata(arena)
+        new_score = self._score_register.get_score(metadata, score_table)
+        data = {"current_scores": {arena: new_score}}
+        return json.dumps(data)
+
+    async def _notify_state(self):
+        if self._clients:  # asyncio.wait doesn't accept an empty list
+            message = self._get_score_message()
+            await asyncio.wait([client.send(message) for client in self._clients])
+
+    async def _unregister(self, websocket):
+        self._clients.remove(websocket)
 
 
-def update_score(data):
-    global current_scores
-    arena_score = current_scores[data["arena"]]
-    arena_score[data["score"]["key"]] = data["score"]["value"]
+if __name__ == "__main__":
+    print("Creating server")
+    server = Server()
+    start_server = websockets.serve(server.serve, "localhost", 6789)
 
-
-def state_event():
-    data = {"type": "state", **STATE}
-    data["current_scores"] = current_scores
-    return json.dumps(data)
-
-# ToDo: update
-# * improve name
-# * should send (large amount of data) in case of
-#     * Registering a user
-#     * Updating settings
-# * data should contain everything that's specific per challenge (metadata, description, scoretable), currentscores
-#   and general: standings
-# * convenient to do this per arena, hence:
-#   data = {'A': {metadata: ..., score_table: ..., challenge_info: ..., current_scores: ...}, 'standings': ...}
-def users_event():
-    data = {"type": "users", "count": len(USERS)}
-    data["metadata"] = metadata
-    data["score_table"] = score_table
-    data["challenge_info"] = challenge_info
-    data["current_scores"] = current_scores
-    data["standings"] = standings
-    return json.dumps(data)
-
-
-async def notify_state():
-    if USERS:  # asyncio.wait doesn't accept an empty list
-        message = state_event()
-        await asyncio.wait([user.send(message) for user in USERS])
-
-
-async def notify_users():
-    if USERS:  # asyncio.wait doesn't accept an empty list
-        message = users_event()
-        await asyncio.wait([user.send(message) for user in USERS])
-
-
-async def register(websocket):
-    USERS.add(websocket)
-    await notify_users()
-
-
-async def unregister(websocket):
-    USERS.remove(websocket)
-    await notify_users()
-
-
-async def counter(websocket, path):
-    # register(websocket) sends user_event() to websocket
-    await register(websocket)
-    print("Websocket registered")
-    try:
-        await websocket.send(state_event())
-        async for message in websocket:
-            print(f"Received message: {message}")
-            data = json.loads(message)
-            if "score" in data:
-                update_score(data)
-                await notify_state()
-            elif data["action"] == "minus":
-                STATE["value"] -= 1
-                await notify_state()
-            elif data["action"] == "plus":
-                STATE["value"] += 1
-                await notify_state()
-            else:
-                logging.error("unsupported event: {}", data)
-    finally:
-        await unregister(websocket)
-        print("Unregistered")
-
-
-print("Creating server")
-start_server = websockets.serve(counter, "localhost", 6789)
-
-print("Starting")
-asyncio.get_event_loop().run_until_complete(start_server)
-print("Start running forever")
-asyncio.get_event_loop().run_forever()
+    print("Starting")
+    asyncio.get_event_loop().run_until_complete(start_server)
+    print("Start running forever")
+    asyncio.get_event_loop().run_forever()

@@ -1,4 +1,3 @@
-import os
 import threading
 import time
 from collections import namedtuple
@@ -8,9 +7,10 @@ from server_types import MetaData
 
 RecordData = namedtuple("Record", ["stamp", "metadata", "score_key", "score_increment"])
 
+# noinspection PyClassHasNoInit
 class Record(RecordData):
     def to_csv_string(self):
-        data = [str(item) for item in [
+        raw_data = [
             self.stamp,
             self.metadata.event,
             self.metadata.team,
@@ -18,14 +18,15 @@ class Record(RecordData):
             self.metadata.attempt,
             self.score_key,
             self.score_increment,
-        ]]
-        result = ",".join(data)
+        ]
+        assert not any([";" in str(item) for item in raw_data])
+        data = [str(item) for item in raw_data]
+        result = ";".join(data) + "\n"
         return result
 
     @classmethod
     def from_csv_string(cls, input_str):
-        args = input_str.split(",")
-        print(f"Args: {args}")
+        args = input_str.rstrip().split(";")
         stamp = float(args[0])
         meta_data = MetaData(args[1], args[2], args[3], int(args[4]))
         score_key = int(args[5])
@@ -64,7 +65,7 @@ class ScoreRegister(object):
     def _write_record_to_file(self, record):
         with self._file_lock:
             with open(self._db_filename, "a") as f:
-                f.write(record.to_csv_string())
+                f.writelines([record.to_csv_string()])
 
     def get_score(self, metadata, score_table):
         result = {item["key"]: 0 for item in score_table}

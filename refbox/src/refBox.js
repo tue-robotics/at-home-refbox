@@ -1,5 +1,7 @@
 import React from 'react';
+import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
+
 
 
 class Action extends React.Component {
@@ -18,6 +20,7 @@ class Action extends React.Component {
     let scoreDescription = String(currentScore) + '/' + String(this.props.maxScore)
     let canIncrement = currentScore < this.props.maxScore;
     let canDecrement = currentScore > 0;
+    // ToDo: replace buttons by bootstrap buttons
     return (
       <tr className='text-white'>
         <th>{this.props.description}</th>
@@ -60,21 +63,105 @@ class ScoreTable extends React.Component {
 }
 
 
-class MetaDataSelector extends React.Component {
+const AVAILABLE_TEAMS = [
+  'Tech United Eindhoven',
+  'Hibikino Musashi',
+  'er@sers',
+  'Tiny Boy',
+]
+
+
+class SettingSelector extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       configuring: false,
+      current: props.current,
     };
   }
 
+  showNotImplemented(what){
+    console.log('Selecting', what, '(', this.props.setting, ') not yet implemented');
+  }
+
+  onSelect = (choice) => {
+    this.setState({current: choice, configuring: false});
+    this.props.onSelect(this.props.setting, choice);
+  }
+
   render() {
-    const attemptDescription = 'Attempt: ' + String(this.props.attempt)
+    if (this.state.configuring) {
+      return this.renderOptions();
+    } else {
+      return this.renderCurrent();
+    }
+  }
+
+  renderOptions() {
+    const options = this.props.options.map((option) => {
+      return (
+        <Button
+          variant='outline-secondary'
+          block
+          onClick={() => this.onSelect(option)}
+          key={option}
+        >
+          {option}
+        </Button>
+      );
+    })
+    return (
+      <Container className='p3 mt-2 mb-2 bg-white text-secondary'>
+        <div>Select team:</div>
+        <div>{options}</div>
+      </Container>
+    )
+  }
+
+  renderCurrent() {
+    const description = this.props.prefix ? this.props.prefix + this.props.current : this.props.current;
+    const pending = this.state.current && this.props.current !== this.state.current;
+    console.log(this.props.setting, this.props.current, this.state.current, 'pending: ', pending);
+    console.log(this.state);
+    return (
+      <Button
+        variant='secondary'
+        block onClick={() => this.setState({configuring: true})}
+        disabled={pending}
+      >
+        {description}
+      </Button>
+    )
+  }
+
+}
+
+
+class MetaDataSelector extends React.Component {
+  render() {
+    const available_challenges = ['Cocktail party'];
+    const available_attempts = [1];
     return (
       <Container className='p-3 mt-2 bg-primary text-white'>
-        <div>{this.props.challenge}</div>
-        <div>{this.props.team}</div>
-        <div>{attemptDescription}</div>
+        <SettingSelector 
+          setting='challenge'
+          options={available_challenges}
+          current={this.props.challenge}
+          onSelect={this.props.onSelect}
+        />
+        <SettingSelector 
+          setting='team'
+          options={AVAILABLE_TEAMS}
+          current={this.props.team}
+          onSelect={this.props.onSelect}
+        />
+        <SettingSelector 
+          setting='attempt'
+          options={available_attempts}
+          current={this.props.attempt}
+          prefix='Attempt: '
+          onSelect={this.props.onSelect}
+        />
       </Container>
     )
   }
@@ -148,24 +235,26 @@ class RefBox extends React.Component {
     });
   }
 
+  sendScore = (key, value) => {
+    this.sendData('score', key, value);
+  }
+
+  sendSetting = (key, value) => {
+    this.sendData('setting', key, value);
+  }
+
+  sendData = (data_key, key, value) => {
+    let msg_data = {'arena': this.state.arena}
+    msg_data[data_key] = {'key': key, 'value': value};
+    this.sendMessage(msg_data);
+  }
+
   sendMessage = (data) => {
     try {
         this.ws.send(JSON.stringify(data));
     } catch (error) {
         console.log(error) // catch error
     }
-  }
-
-  // ToDo: only send the score 'event'
-  sendScore = (key, value) => {
-    const data = {
-      'arena': this.state.arena,
-      'score': {
-        'key': key,
-        'value': value,
-      }
-    }
-    this.sendMessage(data);
   }
 
   render()
@@ -181,6 +270,7 @@ class RefBox extends React.Component {
           challenge={this.state.challenge}
           team={this.state.team}
           attempt={this.state.attempt}
+          onSelect={this.sendSetting}
         />
         <ScoreTable 
           scoreTable={this.state.scoreTable}

@@ -3,7 +3,7 @@ import Container from 'react-bootstrap/Container';
 
 
 function AudienceHeader(props) {
-  let arenaDescription = 'Arena: ' + props.metadata.arena;
+  let arenaDescription = 'Arena: ' + props.arena;
   let attemptDescription = 'Attempt: ' + String(props.metadata.attempt)
   return (
     <div>
@@ -243,7 +243,9 @@ class AudienceInfo extends React.Component {
   render() {
     return (
       <div>
-        <AudienceHeader metadata={this.state.metadata}/>
+        <AudienceHeader 
+          metadata={this.state.metadata}
+          arena={this.state.arena}/>
         <p></p>
         <ChallengeDescription
           metadata={this.state.metadata}

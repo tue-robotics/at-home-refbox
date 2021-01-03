@@ -19,7 +19,7 @@ class Action extends React.Component {
     let canIncrement = currentScore < this.props.maxScore;
     let canDecrement = currentScore > 0;
     return (
-      <tr>
+      <tr className='text-white'>
         <th>{this.props.description}</th>
         <th style={{textAlign: 'center'}}><button onClick={() => this.decrement()} disabled={!canDecrement}>{decrementDescription}</button></th>
         <th style={{textAlign: 'center'}}>{scoreDescription}</th>
@@ -48,7 +48,7 @@ class ScoreTable extends React.Component {
     );  
   });
   return (
-    <Container className='p-3 bg-white text-primary'>
+    <Container className='p-3 mt-2 bg-primary text-white'>
       <table className="table table-bordered">
         <tbody>
           {actions}
@@ -57,6 +57,27 @@ class ScoreTable extends React.Component {
     </Container>
   );
   } 
+}
+
+
+class MetaDataSelector extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      configuring: false,
+    };
+  }
+
+  render() {
+    const attemptDescription = 'Attempt: ' + String(this.props.attempt)
+    return (
+      <Container className='p-3 mt-2 bg-primary text-white'>
+        <div>{this.props.challenge}</div>
+        <div>{this.props.team}</div>
+        <div>{attemptDescription}</div>
+      </Container>
+    )
+  }
 }
 
 
@@ -137,7 +158,7 @@ class RefBox extends React.Component {
 
   // ToDo: only send the score 'event'
   sendScore = (key, value) => {
-    let data = {
+    const data = {
       'arena': this.state.arena,
       'score': {
         'key': key,
@@ -149,15 +170,18 @@ class RefBox extends React.Component {
 
   render()
   {
-    let arenaDescription = 'Arena: ' + this.state.arena;
-    let attemptDescription = 'Attempt: ' + String(this.state.attempt)
+    const arenaDescription = 'Arena: ' + this.state.arena;
     return (
       <div>
-        <div>{this.state.event}</div>
-        <div>{arenaDescription}</div>
-        <div>{this.state.challenge}</div>
-        <div>{this.state.team}</div>
-        <div>{attemptDescription}</div>
+        <Container className='p-3 bg-primary text-white'>
+          <div>{this.state.event}</div>
+          <div>{arenaDescription}</div>
+        </Container>
+        <MetaDataSelector
+          challenge={this.state.challenge}
+          team={this.state.team}
+          attempt={this.state.attempt}
+        />
         <ScoreTable 
           scoreTable={this.state.scoreTable}
           onScore={this.sendScore}

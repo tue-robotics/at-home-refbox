@@ -15,6 +15,7 @@ import os
 
 import websockets
 
+from competition import Competition
 from score_register import ScoreRegister
 from server_types import MetaData
 
@@ -39,15 +40,15 @@ challenge_info = {
 
 # State: should 'live' server side in order to keep referee and audience clients in sync
 # Should support multiple arenas
-METADATA = {
-  "A":
-    {
-      "event": "RoboCup 2021, Bordeaux, France",
-      "challenge": "Cocktail party",
-      "team": "Tech United Eindhoven",
-      "attempt": 1,
-    },
-}
+# METADATA = {
+#   "A":
+#     {
+#       "event": "RoboCup 2021, Bordeaux, France",
+#       "challenge": "Cocktail party",
+#       "team": "Tech United Eindhoven",
+#       "attempt": 1,
+#     },
+# }
 
 
 standings = [
@@ -70,9 +71,10 @@ standings = [
 
 
 class Server(object):
-    def __init__(self):
-        self._clients = set()
+    def __init__(self, event):
+        self._competition = Competition(event)
         self._score_register = self._create_score_register()
+        self._clients = set()
 
     @staticmethod
     def _create_score_register():
@@ -90,7 +92,9 @@ class Server(object):
             async for message in websocket:
                 print(f"Received message: {message}")
                 data = json.loads(message)
-                if "score" in data:
+                if "setting" in data:
+                    await self._on_setting(data)
+                elif "score" in data:
                     self._on_score(data)
                     await self._notify_state()
                 else:
@@ -119,32 +123,42 @@ class Server(object):
     #   and general: standings
     # * convenient to do this per arena, hence:
     #   data = {'A': {metadata: ..., score_table: ..., challenge_info: ..., current_scores: ...}, 'standings': ...}
-    @staticmethod
-    def _get_data_on_registration():
+    def _get_data_on_registration(self):
         data = {
-            "metadata": METADATA,
+            "metadata": self._competition.get_metadata_dict(),
             "score_table": score_table,
             "challenge_info": challenge_info,
             "standings": standings,
         }
         return json.dumps(data)
 
+    async def _on_setting(self, data):
+        setting = data["setting"]
+        if setting["key"] == "team":
+            self._competition.set_team(data["arena"], setting["value"])
+            message = json.dumps({"metadata": self._competition.get_metadata_dict()})
+        else:
+            print(f"Cannot update setting: {data}")
+            return
+        if self._clients:  # asyncio.wait doesn't accept an empty list
+            await asyncio.wait([client.send(message) for client in self._clients])
+
     def _on_score(self, data):
-        metadata = self._get_metadata(data["arena"])
+        metadata = self._competition.get_metadata(data["arena"])
         self._score_register.register_score(
             metadata=metadata, score_key=data["score"]["key"], score_increment=data["score"]["value"]
         )
 
-    @staticmethod
-    def _get_metadata(arena):  # Shouldn't be static once setting metadata is possible
-        arena_metadata = METADATA[arena]
-        return MetaData(
-            arena_metadata["event"], arena_metadata["team"], arena_metadata["challenge"], arena_metadata["attempt"]
-        )
+    # @staticmethod
+    # def _get_metadata(arena):  # Shouldn't be static once setting metadata is possible
+    #     arena_metadata = METADATA[arena]
+    #     return MetaData(
+    #         arena_metadata["event"], arena_metadata["team"], arena_metadata["challenge"], arena_metadata["attempt"]
+    #     )
 
     def _get_score_message(self):
         arena = "A"  # ToDo: allow multiple arenas
-        metadata = self._get_metadata(arena)
+        metadata = self._competition.get_metadata(arena)
         new_score = self._score_register.get_score(metadata, score_table)
         data = {"current_scores": {arena: new_score}}
         return json.dumps(data)
@@ -160,7 +174,11 @@ class Server(object):
 
 if __name__ == "__main__":
     print("Creating server")
-    server = Server()
+    server = Server("RoboCup 2021")
+    # Set some default values for easy testing
+    server._competition.set_team("A", "Tech United Eindhoven")
+    server._competition.set_challenge("A", "Cocktail party")
+    server._competition.set_attempt("A", 1)
     start_server = websockets.serve(server.serve, "localhost", 6789)
 
     print("Starting")

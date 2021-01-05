@@ -115,14 +115,14 @@ class SettingSelector extends React.Component {
         <div>Select team:</div>
         <div>{options}</div>
       </Container>
-    )
+    ) 
   }
 
   renderCurrent() {
     const description = this.props.prefix ? this.props.prefix + this.props.current : this.props.current;
     const pending = this.state.current && this.props.current !== this.state.current;
-    console.log(this.props.setting, this.props.current, this.state.current, 'pending: ', pending);
-    console.log(this.state);
+    // console.log(this.props.setting, this.props.current, this.state.current, 'pending: ', pending);
+    // console.log(this.state);
     return (
       <Button
         variant='secondary'
@@ -196,16 +196,10 @@ class RefBox extends React.Component {
     this.ws.onmessage = evt => {
       // listen to data sent from the websocket server
       const message = JSON.parse(evt.data)
+      console.log('Message: ', message);
       this.setState({dataFromServer: message})
-      if ('metadata' in message && this.state.arena in message.metadata) {
-        this.updateMetaData(message.metadata[this.state.arena])
-      }
-      if ('score_table' in message) {
-        this.updateScoreTable(message.score_table)
-      }
-      // ToDo: this might only work if score table has already been set
-      if ('current_scores' in message && this.state.arena in message.current_scores) {
-        this.updateScores(message.current_scores[this.state.arena]);
+      if (this.state.arena in message) {
+        this.updateArenaData(message[this.state.arena]);
       }
     }
 
@@ -216,9 +210,31 @@ class RefBox extends React.Component {
 
   }
 
+  updateArenaData(data) {
+    if ('event' in data) {
+      this.updateStaticData(data);
+    }
+    if ('metadata' in data) {
+      this.updateMetaData(data.metadata);
+    }
+    if ('score_table' in data) {
+      this.updateScoreTable(data.score_table)
+    }
+    // ToDo: this might only work if score table has already been set
+    // if ('current_scores' in message && this.state.arena in message.current_scores) {
+    if ('current_scores' in data) {
+      this.updateScores(data.current_scores);
+    }
+  }
+
+  updateStaticData(data) {
+    this.setState({
+      event: data.event,
+    });
+  }
+
   updateMetaData(metadata) {
     this.setState({
-      event: metadata.event,
       challenge: metadata.challenge,
       team: metadata.team,
       attempt: metadata.attempt,

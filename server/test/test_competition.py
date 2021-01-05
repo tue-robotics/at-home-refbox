@@ -19,7 +19,7 @@ def test_setup():
     competition.set_team(ARENA, TEAM)
     competition.set_challenge(ARENA, CHALLENGE)
     competition.set_attempt(ARENA, ATTEMPT)
-    assert competition.get_metadata(ARENA) == MetaData(EVENT, TEAM, CHALLENGE, ATTEMPT)
+    assert competition.get_metadata(ARENA) == MetaData(TEAM, CHALLENGE, ATTEMPT)
 
 
 def test_dict():
@@ -27,5 +27,5 @@ def test_dict():
     competition.set_team(ARENA, TEAM)
     competition.set_challenge(ARENA, CHALLENGE)
     competition.set_attempt(ARENA, ATTEMPT)
-    reference_dict = {"event": EVENT, "team": TEAM, "challenge": CHALLENGE, "attempt": 1}
-    assert all([competition.get_metadata_dict()[ARENA][key] == reference_dict[key] for key in reference_dict.keys()])
+    reference_dict = {"team": TEAM, "challenge": CHALLENGE, "attempt": 1}
+    assert all([competition.get_metadata_dict(ARENA)[key] == reference_dict[key] for key in reference_dict.keys()])

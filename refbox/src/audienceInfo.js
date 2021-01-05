@@ -4,11 +4,11 @@ import Container from 'react-bootstrap/Container';
 
 function AudienceHeader(props) {
   let arenaDescription = 'Arena: ' + props.arena;
-  let attemptDescription = 'Attempt: ' + String(props.metadata.attempt)
+  let attemptDescription = 'Attempt: ' + String(props.attempt)
   return (
     <div>
-      <h2>{props.metadata.event}</h2>
-      <h2>{props.metadata.team}</h2>
+      <h2>{props.event}</h2>
+      <h2>{props.team}</h2>
       <p>{attemptDescription}</p>
       <p>{arenaDescription}</p>
     </div>
@@ -17,10 +17,12 @@ function AudienceHeader(props) {
 
 
 function ChallengeDescription(props) {
+  const defaultDescription = 'Here a description of the challenge should be displayed';
+  const description = props.info.description ? props.info.description : defaultDescription;
   return (
     <div>
-      <h2>{props.metadata.challenge}</h2>
-      <p>{props.info.description}</p>
+      <h2>{props.challenge}</h2>
+      <p>{description}</p>
     </div>
   );
 }
@@ -72,7 +74,7 @@ class Standings extends React.Component {
   getVirtualStanding() {
     const currentStanding = this.props.standings;
     const currentScore = this.getCurrentScore();
-    const currentTeam = this.props.metadata.team;
+    const currentTeam = this.props.team;
     let virtualStanding = currentStanding.map((standingItem) => {
       let updatedItem = {
         team: standingItem.team,
@@ -94,7 +96,7 @@ class Standings extends React.Component {
     virtualStanding.sort((a, b) => (a.points > b.points) ? -1 : ((b.points > a.points) ? 1 : 0));
 
     const rows = virtualStanding.map((standingItem, idx) => {
-      const style = standingItem.team === this.props.metadata.team ? 'bg-info' : 'bg-white';
+      const style = standingItem.team === this.props.team ? 'bg-info' : 'bg-white';
       return (
         <tr key={idx} className={style}>
           <th>{standingItem.team}</th>
@@ -130,7 +132,6 @@ class AudienceTables extends React.Component {
           <div className='container'>
             <CurrentScoreTable
               interface={this.props.interface}
-              metadata={this.props.metadata}
               scoreTable={this.props.scoreTable}
               currentScore={this.props.currentScore}
               highlightScore={this.props.highlightScore}
@@ -140,7 +141,7 @@ class AudienceTables extends React.Component {
         <div className='col-md-6'>
           <Standings 
             interface={this.props.interface}
-            metadata={this.props.metadata}
+            team={this.props.team}
             standings={this.props.standings}
             currentScore={this.props.currentScore}
           />
@@ -157,12 +158,10 @@ class AudienceInfo extends React.Component {
     const arena = 'A';  // ToDo: don't hardcode arena
     this.state = {
       arena: arena,
-      metadata: { // ToDo: similar to refbox
-        event: '',
-        challenge: '',
-        team: '',
-        attempt: '',
-      },
+      event: '',
+      challenge: '',
+      team: '',
+      attempt: '',
       challengeInfo: {'description': ''},
       scoreTable: [],
       currentScore: {},
@@ -187,22 +186,11 @@ class AudienceInfo extends React.Component {
       const message = JSON.parse(evt.data)
       console.log('Message: ', message);
       this.setState({dataFromServer: message})
+      if (this.state.arena in message) {
+        this.updateArenaData(message[this.state.arena]);
+      }
       if ('metadata' in message && this.state.arena in message.metadata) {
         this.updateMetaData(message.metadata[this.state.arena])
-      }
-      // ToDo: this only works if metadata has already been set...
-      if ('challenge_info' in message && this.state.metadata.challenge in message.challenge_info) {
-        this.setState({challengeInfo: message.challenge_info[this.state.metadata.challenge]});
-      }
-      if ('score_table' in message) {
-        this.updateScoreTable(message.score_table)
-      }
-      // ToDo: this might only work if score table has already been set
-      if ('current_scores' in message && this.state.arena in message.current_scores) {
-        this.updateScores(message.current_scores[this.state.arena]);
-      }
-      if ('standings' in message) {
-        this.setState({standings: message.standings})
       }
     }
 
@@ -213,9 +201,37 @@ class AudienceInfo extends React.Component {
 
   }
 
+  updateArenaData(data) {
+    if ('event' in data) {
+      this.updateStaticData(data);
+    }
+    if ('metadata' in data) {
+      this.updateMetaData(data.metadata);
+    }
+    if ('score_table' in data) {
+      this.updateScoreTable(data.score_table)
+    }
+    // ToDo: this might only work if score table has already been set
+    // if ('current_scores' in message && this.state.arena in message.current_scores) {
+    if ('current_scores' in data) {
+      this.updateScores(data.current_scores);
+    }
+    if ('standings' in data) {
+        this.setState({standings: data.standings})
+    }
+  }
+
+  updateStaticData(data) {
+    this.setState({
+      event: data.event,
+    });
+  }
+
   updateMetaData(metadata) {
     this.setState({
-      metadata: metadata,
+      challenge: metadata.challenge,
+      team: metadata.team,
+      attempt: metadata.attempt,
     })
   }
 
@@ -244,16 +260,19 @@ class AudienceInfo extends React.Component {
     return (
       <div>
         <AudienceHeader 
-          metadata={this.state.metadata}
-          arena={this.state.arena}/>
+          event={this.state.event}
+          arena={this.state.arena}
+          team={this.state.team}
+          attempt={this.state.attempt}
+        />
         <p></p>
         <ChallengeDescription
-          metadata={this.state.metadata}
+          challenge={this.state.challenge}
           info={this.state.challengeInfo}
         />
         <p></p>
         <AudienceTables
-          metadata={this.state.metadata}
+          team={this.state.team}
           scoreTable={this.state.scoreTable}
           currentScore={this.state.currentScore}
           highlightScore={this.state.highlightScore}

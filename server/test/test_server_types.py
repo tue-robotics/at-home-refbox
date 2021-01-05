@@ -9,7 +9,7 @@ path = path.joinpath("src", "server")
 sys.path.insert(1, str(path))
 from server_types import MetaData
 
-METADATA = MetaData('RoboCup 2021', 'Tech United Eindhoven', 'Restaurant', 1)
+METADATA = MetaData('Tech United Eindhoven', 'Restaurant', 1)
 
 def test_record_serialization_deserialization_str():
     json_str = METADATA.to_json_string()

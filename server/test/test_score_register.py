@@ -20,47 +20,48 @@ SCORE_TABLE = [
     {"key": 126, "description": 'Deliver order', "scoreIncrement": 100, "maxScore": 300},
 ]
 
-METADATA = MetaData('RoboCup 2021', 'Tech United Eindhoven', 'Restaurant', 1)
+EVENT = "RoboCup 2021"
+METADATA = MetaData('Tech United Eindhoven', 'Restaurant', 1)
 SCORE_KEY = 123
 SCORE_INCREMENT = 100
 
 
 def test_record_serialization_deserialization():
-    original_record = Record(time.time(), METADATA, SCORE_KEY, SCORE_INCREMENT)
+    original_record = Record(time.time(), EVENT, METADATA, SCORE_KEY, SCORE_INCREMENT)
     csv = original_record.to_csv_string()
     recreated_record = Record.from_csv_string(csv)
     assert original_record == recreated_record
 
 
 def test_record_serialization_comma():
-    metadata = MetaData('RoboCup 2021, Bordeaux, France', 'Tech United Eindhoven', 'Restaurant', 1)
-    original_record = Record(time.time(), metadata, SCORE_KEY, SCORE_INCREMENT)
+    metadata = MetaData('Tech,United,Eindhoven', 'Restaurant', 1)
+    original_record = Record(time.time(), EVENT, metadata, SCORE_KEY, SCORE_INCREMENT)
     csv = original_record.to_csv_string()
     recreated_record = Record.from_csv_string(csv)
     assert original_record == recreated_record
 
 
 def test_record_serialization_semicolon():
-    metadata = MetaData('RoboCup 2021; Bordeaux; France', 'Tech United Eindhoven', 'Restaurant', 1)
-    record = Record(time.time(), metadata, SCORE_KEY, SCORE_INCREMENT)
+    metadata = MetaData('Tech;United;Eindhoven', 'Restaurant', 1)
+    record = Record(time.time(), EVENT, metadata, SCORE_KEY, SCORE_INCREMENT)
     with pytest.raises(AssertionError):
         record.to_csv_string()
 
 
 def test_register_score(tmpdir):
-    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
 
 
 def test_get_score_single(tmpdir):
-    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     current_score = register.get_score(METADATA, SCORE_TABLE)
     assert current_score[SCORE_KEY] == SCORE_INCREMENT
 
 
 def test_get_score_double(tmpdir):
-    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     current_score = register.get_score(METADATA, SCORE_TABLE)
@@ -68,9 +69,9 @@ def test_get_score_double(tmpdir):
 
 
 def test_different_metadata(tmpdir):
-    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
-    metadata2 = MetaData(METADATA.event, METADATA.team, METADATA.challenge, METADATA.attempt+1)
+    metadata2 = MetaData(METADATA.team, METADATA.challenge, METADATA.attempt+1)
     register.register_score(metadata=metadata2, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     current_score = register.get_score(METADATA, SCORE_TABLE)
     assert current_score[SCORE_KEY] == SCORE_INCREMENT
@@ -79,7 +80,7 @@ def test_different_metadata(tmpdir):
 
 
 def test_get_score_negative(tmpdir):
-    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=-SCORE_INCREMENT)
     current_score = register.get_score(METADATA, SCORE_TABLE)
@@ -87,26 +88,26 @@ def test_get_score_negative(tmpdir):
 
 
 def test_load_from_file(tmpdir):
-    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
-    register2 = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register2 = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     current_score = register2.get_score(METADATA, SCORE_TABLE)
     assert current_score[SCORE_KEY] == SCORE_INCREMENT
 
 
 def test_load_from_file_multiple_lines(tmpdir):
-    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
-    register2 = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register2 = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     current_score = register2.get_score(METADATA, SCORE_TABLE)
     assert current_score[SCORE_KEY] == 2 * SCORE_INCREMENT
 
 
 def test_load_from_file_twice(tmpdir):
-    register = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
-    register2 = ScoreRegister(os.path.join(tmpdir, "db.csv"))
+    register2 = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register2.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     current_score = register2.get_score(METADATA, SCORE_TABLE)
     assert current_score[SCORE_KEY] == 2 * SCORE_INCREMENT
@@ -114,9 +115,9 @@ def test_load_from_file_twice(tmpdir):
 
 def test_corrupt_file(tmpdir):
     filename = os.path.join(tmpdir, "db.csv")
-    register = ScoreRegister(filename)
+    register = ScoreRegister(EVENT, filename)
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     with open(filename, "a") as f:
         f.write("\nfoo")
     with pytest.raises(ValueError):
-        ScoreRegister(filename)
+        ScoreRegister(EVENT, filename)

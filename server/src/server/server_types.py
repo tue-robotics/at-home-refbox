@@ -1,12 +1,12 @@
 from collections import namedtuple
 import json
 
-_MetaData = namedtuple('MetaData', ['event', 'team', 'challenge', 'attempt'])
+_MetaData = namedtuple('MetaData', ['team', 'challenge', 'attempt'])
 
 # noinspection PyClassHasNoInit
 class MetaData(_MetaData):
     def to_json_string(self):
-        data = {"event": self.event, "team": self.team, "challenge": self.challenge, "attempt": str(self.attempt)}
+        data = {"team": self.team, "challenge": self.challenge, "attempt": str(self.attempt)}
         return json.dumps(data)
 
     @classmethod
@@ -16,4 +16,4 @@ class MetaData(_MetaData):
 
     @classmethod
     def from_dict(cls, data):
-        return cls(data["event"], data["team"], data["challenge"], int(data["attempt"]))
+        return cls(data["team"], data["challenge"], int(data["attempt"]))

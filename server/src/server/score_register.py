@@ -5,14 +5,14 @@ from collections import namedtuple
 from server_types import MetaData
 
 
-RecordData = namedtuple("Record", ["stamp", "metadata", "score_key", "score_increment"])
+RecordData = namedtuple("Record", ["stamp", "event", "metadata", "score_key", "score_increment"])
 
 # noinspection PyClassHasNoInit
 class Record(RecordData):
     def to_csv_string(self):
         raw_data = [
             self.stamp,
-            self.metadata.event,
+            self.event,
             self.metadata.team,
             self.metadata.challenge,
             self.metadata.attempt,
@@ -28,14 +28,16 @@ class Record(RecordData):
     def from_csv_string(cls, input_str):
         args = input_str.rstrip().split(";")
         stamp = float(args[0])
-        meta_data = MetaData(args[1], args[2], args[3], int(args[4]))
+        event = args[1]
+        meta_data = MetaData(args[2], args[3], int(args[4]))
         score_key = int(args[5])
         score_increment = int(args[6])
-        return cls(stamp, meta_data, score_key, score_increment)
+        return cls(stamp, event, meta_data, score_key, score_increment)
 
 
 class ScoreRegister(object):
-    def __init__(self, db_filename: str):
+    def __init__(self, event: str, db_filename: str):
+        self._event = event
         self._db_filename = db_filename
         self._cache = self._load_cache()
         self._file_lock = threading.RLock()
@@ -55,6 +57,7 @@ class ScoreRegister(object):
 
     def register_score(self, metadata: MetaData, score_key: int, score_increment: int):
         record = Record(time.time(),
+                        self._event,
                         metadata,
                         score_key,
                         score_increment

@@ -17,7 +17,6 @@ import websockets
 
 from competition import Competition
 from score_register import ScoreRegister
-from server_types import MetaData
 
 logging.basicConfig()
 
@@ -37,18 +36,6 @@ challenge_info = {
     "description": "Enter the arena, take the orders of the three guests trying to yet your attention, serve the drinks and exit the arena",
   },
 }
-
-# State: should 'live' server side in order to keep referee and audience clients in sync
-# Should support multiple arenas
-# METADATA = {
-#   "A":
-#     {
-#       "event": "RoboCup 2021, Bordeaux, France",
-#       "challenge": "Cocktail party",
-#       "team": "Tech United Eindhoven",
-#       "attempt": 1,
-#     },
-# }
 
 
 standings = [
@@ -71,17 +58,18 @@ standings = [
 
 
 class Server(object):
-    def __init__(self, event):
+    def __init__(self, event, nr_arenas=2):
+        self._arenas = [chr(65 + i) for i in range(nr_arenas)]  # "A", "B", etc.
         self._competition = Competition(event)
-        self._score_register = self._create_score_register()
+        self._score_register = self._create_score_register(event)
         self._clients = set()
 
     @staticmethod
-    def _create_score_register():
+    def _create_score_register(event):
         path = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
         os.makedirs(path, exist_ok=True)
         filename = os.path.join(path, "score_db.csv")
-        return ScoreRegister(filename)
+        return ScoreRegister(event, filename)
 
     async def serve(self, websocket, path):
         # register(websocket) sends user_event() to websocket
@@ -124,11 +112,14 @@ class Server(object):
     # * convenient to do this per arena, hence:
     #   data = {'A': {metadata: ..., score_table: ..., challenge_info: ..., current_scores: ...}, 'standings': ...}
     def _get_data_on_registration(self):
-        data = {
-            "metadata": self._competition.get_metadata_dict(),
-            "score_table": score_table,
-            "challenge_info": challenge_info,
-            "standings": standings,
+        data = {"A":
+            {
+                "event": self._competition.event,
+                "metadata": self._competition.get_metadata_dict("A"),
+                "score_table": score_table,
+                "challenge_info": challenge_info,
+                "standings": standings,
+            },
         }
         return json.dumps(data)
 
@@ -136,7 +127,9 @@ class Server(object):
         setting = data["setting"]
         if setting["key"] == "team":
             self._competition.set_team(data["arena"], setting["value"])
-            message = json.dumps({"metadata": self._competition.get_metadata_dict()})
+            message = json.dumps({
+                "metadata": self._competition.get_metadata_dict(data["arena"])
+            })
         else:
             print(f"Cannot update setting: {data}")
             return
@@ -160,7 +153,8 @@ class Server(object):
         arena = "A"  # ToDo: allow multiple arenas
         metadata = self._competition.get_metadata(arena)
         new_score = self._score_register.get_score(metadata, score_table)
-        data = {"current_scores": {arena: new_score}}
+        # data = {"current_scores": {arena: new_score}}
+        data = {arena: {"current_scores": new_score}}
         return json.dumps(data)
 
     async def _notify_state(self):

@@ -58,15 +58,14 @@ standings = [
 
 
 class Server(object):
-    def __init__(self, event, nr_arenas=2):
+    def __init__(self, path, event, nr_arenas=2):
         self._arenas = [chr(65 + i) for i in range(nr_arenas)]  # "A", "B", etc.
         self._competition = Competition(event)
-        self._score_register = self._create_score_register(event)
+        self._score_register = self._create_score_register(path, event)
         self._clients = set()
 
     @staticmethod
-    def _create_score_register(event):
-        path = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
+    def _create_score_register(path, event):
         os.makedirs(path, exist_ok=True)
         filename = os.path.join(path, "score_db.csv")
         return ScoreRegister(event, filename)
@@ -89,7 +88,7 @@ class Server(object):
                     if "setting" in arena_data:
                         await self._on_setting(arena, arena_data)
                     elif "score" in arena_data:
-                        await self._on_score(arena, data)
+                        await self._on_score(arena, arena_data)
                     else:
                         logging.error("unsupported event: {}", data)
         finally:
@@ -187,7 +186,8 @@ def select_defaults_in_server(server):
 
 if __name__ == "__main__":
     print("Creating server")
-    server = Server("RoboCup 2021")
+    path = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
+    server = Server(path, "RoboCup 2021")
     select_defaults_in_server(server)
     start_server = websockets.serve(server.serve, "localhost", 6789)
 

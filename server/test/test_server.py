@@ -16,18 +16,20 @@ TEAM = "Tech United Eindhoven"
 CHALLENGE = "Restaurant"
 ATTEMPT = 1
 ARENA = "A"
+SCORE_KEY = 123
+SCORE_VALUE = 100
 
 
-async def setup_default_server_and_client():
-    server = _setup_default_server()
+async def setup_default_server_and_client(path):
+    server = _setup_default_server(path)
     client = MockSocket()
     # noinspection PyProtectedMember
     await server._register(client)
     return server, client
 
 # noinspection PyProtectedMember
-def _setup_default_server():
-    server = Server(EVENT)
+def _setup_default_server(path):
+    server = Server(path, EVENT)
     server._competition.set_team(ARENA, TEAM)
     server._competition.set_challenge(ARENA, CHALLENGE)
     server._competition.set_attempt(ARENA, ATTEMPT)
@@ -37,6 +39,14 @@ def _setup_default_server():
 class MockSocket(object):
     def __init__(self):
         self.send = mock.AsyncMock()
+
+    def get_arena_arg_list(self, arena=ARENA):
+        result = []
+        for call_args in self.send.call_args_list:
+            data = json.loads(call_args.args[0])
+            if arena in data:
+                result.append(data[arena])
+        return result
 
     def reset_mock(self):
         self.send.reset_mock()
@@ -67,18 +77,14 @@ def _check_data(client, required_keys, arena=ARENA):
 # Where standings are sent is a choice. We might choose to do this upon each quasi-static update (1 & 2)
 
 @pytest.mark.asyncio
-async def test_registration():
-    # server = _setup_default_server()
-    # client = MockSocket()
-    # # noinspection PyProtectedMember
-    # await server._register(client)
-    server, client = await setup_default_server_and_client()
+async def test_registration(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
     _check_data(client, ["event", "metadata", "challenge_info", "standings"])
 
 
 @pytest.mark.asyncio
-async def test_registration_empty():
-    server = Server(EVENT)
+async def test_registration_empty(tmpdir):
+    server = Server(tmpdir, EVENT)
     client = MockSocket()
     # noinspection PyProtectedMember
     await server._register(client)
@@ -86,31 +92,42 @@ async def test_registration_empty():
 
 
 @pytest.mark.asyncio
-async def test_metadata():
-    # server = _setup_default_server()
-    # client = MockSocket()
-    # # noinspection PyProtectedMember
-    # await server._register(client)
-    server, client = await setup_default_server_and_client()
+async def test_metadata(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
     metadata = {}
-    for call_args in client.send.call_args_list:
-        data = json.loads(call_args.args[0])
-        if ARENA in data:
-            arena_data = data[ARENA]
-            if "metadata" in data[ARENA]:
-                metadata = arena_data["metadata"]
+    for data in client.get_arena_arg_list():
+        if "metadata" in data:
+            metadata = data["metadata"]
     assert metadata
     assert all([item in metadata for item in ["team", "challenge", "attempt"]])
 
 
 @pytest.mark.asyncio
-async def test_set_team():
-    server, client = await setup_default_server_and_client()
+async def test_set_team(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
     arena_data = {"setting": {"team": "Hibikino Musashi"}}
     client.reset_mock()
     # noinspection PyProtectedMember
     await server._on_setting(ARENA, arena_data)
     _check_data(client, ["metadata", "current_scores"])
+
+
+@pytest.mark.asyncio
+async def test_score(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    client.reset_mock()
+    data = {"score": {SCORE_KEY: SCORE_VALUE}}
+    # noinspection PyProtectedMember
+    await server._on_score(ARENA, data)
+    assert(any(["current_scores" in item for item in client.get_arena_arg_list()]))
+    for arena_data in client.get_arena_arg_list():
+        if "current_scores" in arena_data:
+            scores = {int(key): value for key, value in arena_data["current_scores"].items()}
+            assert scores[SCORE_KEY] == SCORE_VALUE
+
+
+
+
 
 
 # @pytest.mark.asyncio

@@ -80,10 +80,6 @@ class SettingSelector extends React.Component {
     };
   }
 
-  showNotImplemented(what){
-    console.log('Selecting', what, '(', this.props.setting, ') not yet implemented');
-  }
-
   onSelect = (choice) => {
     this.setState({current: choice, configuring: false});
     this.props.onSelect(this.props.setting, choice);
@@ -261,7 +257,8 @@ class RefBox extends React.Component {
 
   sendData = (data_key, key, value) => {
     let msg_data = {'arena': this.state.arena}
-    msg_data[data_key] = {'key': key, 'value': value};
+    msg_data[data_key] = {};
+    msg_data[data_key][key] = value;
     this.sendMessage(msg_data);
   }
 

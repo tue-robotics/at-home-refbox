@@ -125,8 +125,8 @@ class Server(object):
 
     async def _on_setting(self, data):
         setting = data["setting"]
-        if setting["key"] == "team":
-            self._competition.set_team(data["arena"], setting["value"])
+        if "team" in setting:
+            self._competition.set_team(data["arena"], setting["team"])
             message = json.dumps({
                 "metadata": self._competition.get_metadata_dict(data["arena"])
             })
@@ -137,10 +137,11 @@ class Server(object):
             await asyncio.wait([client.send(message) for client in self._clients])
 
     def _on_score(self, data):
-        metadata = self._competition.get_metadata(data["arena"])
-        self._score_register.register_score(
-            metadata=metadata, score_key=data["score"]["key"], score_increment=data["score"]["value"]
-        )
+        metadata = self._competition.get_metadata(data["arena"])  # type: dict
+        for key, value in data["score"].items():
+            self._score_register.register_score(
+                metadata=metadata, score_key=int(key), score_increment=value,
+            )
 
     # @staticmethod
     # def _get_metadata(arena):  # Shouldn't be static once setting metadata is possible

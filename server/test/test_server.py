@@ -18,6 +18,13 @@ ATTEMPT = 1
 ARENA = "A"
 
 
+async def setup_default_server_and_client():
+    server = _setup_default_server()
+    client = MockSocket()
+    # noinspection PyProtectedMember
+    await server._register(client)
+    return server, client
+
 # noinspection PyProtectedMember
 def _setup_default_server():
     server = Server(EVENT)
@@ -56,10 +63,11 @@ def _check_data(client, required_keys, arena=ARENA):
 
 @pytest.mark.asyncio
 async def test_registration():
-    server = _setup_default_server()
-    client = MockSocket()
-    # noinspection PyProtectedMember
-    await server._register(client)
+    # server = _setup_default_server()
+    # client = MockSocket()
+    # # noinspection PyProtectedMember
+    # await server._register(client)
+    server, client = await setup_default_server_and_client()
     _check_data(client, ["event", "metadata", "challenge_info", "standings"])
 
 
@@ -74,10 +82,11 @@ async def test_registration_empty():
 
 @pytest.mark.asyncio
 async def test_metadata():
-    server = _setup_default_server()
-    client = MockSocket()
-    # noinspection PyProtectedMember
-    await server._register(client)
+    # server = _setup_default_server()
+    # client = MockSocket()
+    # # noinspection PyProtectedMember
+    # await server._register(client)
+    server, client = await setup_default_server_and_client()
     metadata = {}
     for call_args in client.send.call_args_list:
         data = json.loads(call_args.args[0])
@@ -89,7 +98,10 @@ async def test_metadata():
     assert all([item in metadata for item in ["team", "challenge", "attempt"]])
 
 
-
+@pytest.mark.asyncio
+async def test_set_team():
+    server, client = await setup_default_server_and_client()
+    data = {ARENA: {"setting": {"key": "team", "value": "Hibikino Musashi"}}}
 
 # @pytest.mark.asyncio
 # async def test_set_challenge():

@@ -5,9 +5,11 @@ _MetaData = namedtuple('MetaData', ['team', 'challenge', 'attempt'])
 
 # noinspection PyClassHasNoInit
 class MetaData(_MetaData):
+    def to_dict(self):
+        return {"team": self.team, "challenge": self.challenge, "attempt": str(self.attempt)}
+
     def to_json_string(self):
-        data = {"team": self.team, "challenge": self.challenge, "attempt": str(self.attempt)}
-        return json.dumps(data)
+        return json.dumps(self.to_dict())
 
     @classmethod
     def from_json_string(cls, json_string):

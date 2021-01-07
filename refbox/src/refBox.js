@@ -256,9 +256,12 @@ class RefBox extends React.Component {
   }
 
   sendData = (data_key, key, value) => {
-    let msg_data = {'arena': this.state.arena}
-    msg_data[data_key] = {};
-    msg_data[data_key][key] = value;
+    // let msg_data = {'arena': this.state.arena}
+    let arena_data = {}
+    arena_data[data_key] = {};
+    arena_data[data_key][key] = value;
+    let msg_data = {}
+    msg_data[this.state.arena] = arena_data
     this.sendMessage(msg_data);
   }
 

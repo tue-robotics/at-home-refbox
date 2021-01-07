@@ -80,13 +80,18 @@ class Server(object):
             async for message in websocket:
                 print(f"Received message: {message}")
                 data = json.loads(message)
-                if "setting" in data:
-                    await self._on_setting(data)
-                elif "score" in data:
-                    self._on_score(data)
-                    await self._notify_state()
-                else:
-                    logging.error("unsupported event: {}", data)
+                # ToDo: make nice (don't indent this far)
+                for arena in self._arenas:
+                    if arena not in data:
+                        continue
+
+                    arena_data = data[arena]
+                    if "setting" in arena_data:
+                        await self._on_setting(arena, arena_data)
+                    elif "score" in arena_data:
+                        await self._on_score(arena, data)
+                    else:
+                        logging.error("unsupported event: {}", data)
         finally:
             await self._unregister(websocket)
             print("Unregistered")
@@ -123,12 +128,17 @@ class Server(object):
         }
         return json.dumps(data)
 
-    async def _on_setting(self, data):
+    async def _on_setting(self, arena, data):
         setting = data["setting"]
         if "team" in setting:
-            self._competition.set_team(data["arena"], setting["team"])
+            self._competition.set_team(arena, setting["team"])
+            metadata = self._competition.get_metadata(arena)
+            new_score = self._score_register.get_score(metadata, score_table)
             message = json.dumps({
-                "metadata": self._competition.get_metadata_dict(data["arena"])
+                arena: {
+                    "metadata": metadata.to_dict(),
+                    "current_scores": new_score,
+                }
             })
         else:
             print(f"Cannot update setting: {data}")
@@ -136,12 +146,13 @@ class Server(object):
         if self._clients:  # asyncio.wait doesn't accept an empty list
             await asyncio.wait([client.send(message) for client in self._clients])
 
-    def _on_score(self, data):
-        metadata = self._competition.get_metadata(data["arena"])  # type: dict
+    async def _on_score(self, arena, data):
+        metadata = self._competition.get_metadata(arena)  # type: dict
         for key, value in data["score"].items():
             self._score_register.register_score(
                 metadata=metadata, score_key=int(key), score_increment=value,
             )
+        await self._notify_state()
 
     # @staticmethod
     # def _get_metadata(arena):  # Shouldn't be static once setting metadata is possible
@@ -154,10 +165,10 @@ class Server(object):
         arena = "A"  # ToDo: allow multiple arenas
         metadata = self._competition.get_metadata(arena)
         new_score = self._score_register.get_score(metadata, score_table)
-        # data = {"current_scores": {arena: new_score}}
         data = {arena: {"current_scores": new_score}}
         return json.dumps(data)
 
+    # ToDo: change to 'notify score'
     async def _notify_state(self):
         if self._clients:  # asyncio.wait doesn't accept an empty list
             message = self._get_score_message()
@@ -167,13 +178,17 @@ class Server(object):
         self._clients.remove(websocket)
 
 
-if __name__ == "__main__":
-    print("Creating server")
-    server = Server("RoboCup 2021")
+# noinspection PyProtectedMember
+def select_defaults_in_server(server):
     # Set some default values for easy testing
     server._competition.set_team("A", "Tech United Eindhoven")
     server._competition.set_challenge("A", "Cocktail party")
     server._competition.set_attempt("A", 1)
+
+if __name__ == "__main__":
+    print("Creating server")
+    server = Server("RoboCup 2021")
+    select_defaults_in_server(server)
     start_server = websockets.serve(server.serve, "localhost", 6789)
 
     print("Starting")

@@ -36,13 +36,18 @@ def _setup_default_server():
 
 class MockSocket(object):
     def __init__(self):
-        # self.send = mock.MagicMock()
         self.send = mock.AsyncMock()
+
+    def reset_mock(self):
+        self.send.reset_mock()
 
 
 def _check_data(client, required_keys, arena=ARENA):
+    call_args_list = client.send.call_args_list
+    for item in call_args_list:
+        print(item)
     for data_key in required_keys:
-        assert any([data_key in json.loads(call_arg.args[0])[arena] for call_arg in client.send.call_args_list]), \
+        assert any([data_key in json.loads(call_arg.args[0])[arena] for call_arg in call_args_list]), \
             f"'{data_key}' has not been sent to client"
 
 
@@ -101,7 +106,12 @@ async def test_metadata():
 @pytest.mark.asyncio
 async def test_set_team():
     server, client = await setup_default_server_and_client()
-    data = {ARENA: {"setting": {"key": "team", "value": "Hibikino Musashi"}}}
+    arena_data = {"setting": {"team": "Hibikino Musashi"}}
+    client.reset_mock()
+    # noinspection PyProtectedMember
+    await server._on_setting(ARENA, arena_data)
+    _check_data(client, ["metadata", "current_scores"])
+
 
 # @pytest.mark.asyncio
 # async def test_set_challenge():

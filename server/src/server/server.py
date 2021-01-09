@@ -89,62 +89,46 @@ class Server(object):
         return ScoreRegister(event, filename)
 
     async def serve(self, websocket, path):
-        # register(websocket) sends user_event() to websocket
         await self._register(websocket)
         print("Websocket registered")
         try:
-            await websocket.send(self._get_score_message())
-            async for message in websocket:
-                print(f"Received message: {message}")
-                data = json.loads(message)
-                # ToDo: make nice (don't indent this far)
-                for arena in self._arenas:
-                    if arena not in data:
-                        continue
-
-                    arena_data = data[arena]
-                    if ReceiveKeys.SETTING in arena_data:
-                        await self._on_setting(arena, arena_data[ReceiveKeys.SETTING])
-                    elif ReceiveKeys.SCORE in arena_data:
-                        await self._on_score(arena, arena_data[ReceiveKeys.SCORE])
-                    else:
-                        logging.error("unsupported event: {}", data)
+            await self._process_messages(websocket)
         finally:
             await self._unregister(websocket)
             print("Unregistered")
 
     async def _register(self, websocket):
+        data = self._get_data_on_registration()
+        await websocket.send(json.dumps(data))
         self._clients.add(websocket)
-        await self._notify_users()
 
-    async def _notify_users(self):
-        if self._clients:  # asyncio.wait doesn't accept an empty list
-            message = self._get_data_on_registration()
-            await asyncio.wait([client.send(message) for client in self._clients])
-            message = self._get_score_message()
-            await asyncio.wait([client.send(message) for client in self._clients])
-
-    # ToDo: update
-    # * improve name
-    # * should send (large amount of data) in case of
-    #     * Registering a user
-    #     * Updating settings
-    # * data should contain everything that's specific per challenge (metadata, description, scoretable), currentscores
-    #   and general: standings
-    # * convenient to do this per arena, hence:
-    #   data = {'A': {metadata: ..., score_table: ..., challenge_info: ..., current_scores: ...}, 'standings': ...}
     def _get_data_on_registration(self):
-        arena = "A"
-        metadata = self._competition.get_metadata(arena)
-        data = {arena:
-            {
-                SendKeys.EVENT: self._competition.event,
-                SendKeys.METADATA: metadata.to_dict(),
-                SendKeys.CHALLENGE_INFO: get_challenge_info_dict(metadata.challenge),
-                SendKeys.STANDINGS: standings,
-            },
-        }
-        return json.dumps(data)
+        data = {}
+        for arena in self._arenas:
+            data.update(self._get_data(arena, [
+                SendKeys.EVENT, SendKeys.METADATA, SendKeys.CHALLENGE_INFO, SendKeys.STANDINGS, SendKeys.CURRENT_SCORES,
+            ]))
+        return data
+
+    async def _process_messages(self, websocket):
+        async for message in websocket:
+            await self._process_message(message)
+
+    async def _process_message(self, message):
+        print(f"Received message: {message}")
+        data = json.loads(message)
+        for arena in self._arenas:
+            if arena in data:
+                await self._process_arena_data(arena, data[arena])
+
+    async def _process_arena_data(self, arena, arena_data):
+        if ReceiveKeys.SETTING in arena_data:
+            await self._on_setting(arena, arena_data[ReceiveKeys.SETTING])
+        elif ReceiveKeys.SCORE in arena_data:
+            await self._on_score(arena, arena_data[ReceiveKeys.SCORE])
+        else:
+            logging.error("unsupported event: {}", arena_data)
+
 
     async def _on_setting(self, arena, setting):
         if SettingKeys.TEAM in setting:
@@ -157,32 +141,28 @@ class Server(object):
 
     async def _on_set_team(self, arena, team):
         self._competition.set_team(arena, team)
-        metadata = self._competition.get_metadata(arena)
-        score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
-        new_score = self._score_register.get_score(metadata, score_table)
-        data = {
-            arena: {
-                "metadata": metadata.to_dict(),
-                "current_scores": new_score,
-            }
-        }
+        data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
     async def _on_set_challenge(self, arena, challenge):
         self._competition.set_challenge(arena, challenge)
+        data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CHALLENGE_INFO, SendKeys.CURRENT_SCORES])
+        await self._send_data_to_all(data)
+
+    def _get_data(self, arena, requested_keys):
         metadata = self._competition.get_metadata(arena)
         challenge_info = get_challenge_info_dict(metadata.challenge)
         score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
-        new_score = self._score_register.get_score(metadata, score_table)
+        score = self._score_register.get_score(metadata, score_table)
         data = {
-            arena: {
-                SendKeys.METADATA: metadata.to_dict(),
-                SendKeys.CHALLENGE_INFO: challenge_info,
-                SendKeys.CURRENT_SCORES: new_score,
-            }
+            SendKeys.EVENT: self._competition.event,
+            SendKeys.METADATA: metadata.to_dict(),
+            SendKeys.CHALLENGE_INFO: challenge_info,
+            SendKeys.CURRENT_SCORES: score,
+            SendKeys.STANDINGS: standings,
         }
-        print(f"Challenge data: {data}")
-        await self._send_data_to_all(data)
+        print(f"Get data: {data}")
+        return {arena: {k: v for k, v in data.items() if k in requested_keys}}
 
     async def _on_score(self, arena, score):
         metadata = self._competition.get_metadata(arena)  # type: dict
@@ -201,7 +181,7 @@ class Server(object):
         return json.dumps(data)
 
     async def _send_data_to_all(self, data):
-        # print(f"Sending {data} to {len(self._clients)}")
+        # print(f"Sending {data} to {len(self._clients)} clients")
         if self._clients:  # asyncio.wait doesn't accept an empty list
             message = json.dumps(data)
             await asyncio.wait([client.send(message) for client in self._clients])

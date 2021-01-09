@@ -12,9 +12,10 @@ import asyncio
 import json
 import logging
 import os
-
+import typing
 import websockets
 
+# Server
 from competition import Competition
 from score_register import ScoreRegister
 from server_types import ReceiveKeys, SendKeys, SettingKeys
@@ -49,7 +50,7 @@ CHALLENGE_INFO = [
 ]
 
 
-def get_challenge_info_dict(challenge):
+def get_challenge_info_dict(challenge: str) -> dict:
     if challenge:
         return [info_dict for info_dict in CHALLENGE_INFO if info_dict["name"] == challenge][0] if challenge else {}
     else:
@@ -76,14 +77,14 @@ standings = [
 
 
 class Server(object):
-    def __init__(self, path, event, nr_arenas=2):
+    def __init__(self, path: str, event: str, nr_arenas: int=2):
         self._arenas = [chr(65 + i) for i in range(nr_arenas)]  # "A", "B", etc.
         self._competition = Competition(event)
         self._score_register = self._create_score_register(path, event)
         self._clients = set()
 
     @staticmethod
-    def _create_score_register(path, event):
+    def _create_score_register(path: str, event: str) -> ScoreRegister:
         os.makedirs(path, exist_ok=True)
         filename = os.path.join(path, "score_db.csv")
         return ScoreRegister(event, filename)
@@ -102,7 +103,7 @@ class Server(object):
         await websocket.send(json.dumps(data))
         self._clients.add(websocket)
 
-    def _get_data_on_registration(self):
+    def _get_data_on_registration(self) -> dict:
         data = {}
         for arena in self._arenas:
             data.update(self._get_data(arena, [
@@ -114,14 +115,14 @@ class Server(object):
         async for message in websocket:
             await self._process_message(message)
 
-    async def _process_message(self, message):
+    async def _process_message(self, message: str):
         print(f"Received message: {message}")
         data = json.loads(message)
         for arena in self._arenas:
             if arena in data:
                 await self._process_arena_data(arena, data[arena])
 
-    async def _process_arena_data(self, arena, arena_data):
+    async def _process_arena_data(self, arena: str, arena_data: str):
         if ReceiveKeys.SETTING in arena_data:
             await self._on_setting(arena, arena_data[ReceiveKeys.SETTING])
         elif ReceiveKeys.SCORE in arena_data:
@@ -130,7 +131,7 @@ class Server(object):
             logging.error("unsupported event: {}", arena_data)
 
 
-    async def _on_setting(self, arena, setting):
+    async def _on_setting(self, arena: str, setting: dict):
         if SettingKeys.TEAM in setting:
             await self._on_set_team(arena, setting[SettingKeys.TEAM])
         if SettingKeys.CHALLENGE in setting:
@@ -139,17 +140,17 @@ class Server(object):
         #     print(f"Cannot update setting: {data}")
         #     return
 
-    async def _on_set_team(self, arena, team):
+    async def _on_set_team(self, arena: str, team: str):
         self._competition.set_team(arena, team)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
-    async def _on_set_challenge(self, arena, challenge):
+    async def _on_set_challenge(self, arena: str, challenge: str):
         self._competition.set_challenge(arena, challenge)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CHALLENGE_INFO, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
-    def _get_data(self, arena, requested_keys):
+    def _get_data(self, arena: str, requested_keys: typing.List[str]) -> dict:
         metadata = self._competition.get_metadata(arena)
         challenge_info = get_challenge_info_dict(metadata.challenge)
         score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
@@ -164,7 +165,7 @@ class Server(object):
         print(f"Get data: {data}")
         return {arena: {k: v for k, v in data.items() if k in requested_keys}}
 
-    async def _on_score(self, arena, score):
+    async def _on_score(self, arena: str, score: typing.Dict[int, int]):
         metadata = self._competition.get_metadata(arena)  # type: dict
         for key, value in score.items():
             self._score_register.register_score(
@@ -172,7 +173,7 @@ class Server(object):
             )
         await self._notify_score()
 
-    def _get_score_message(self):
+    def _get_score_message(self) -> str:
         arena = "A"  # ToDo: allow multiple arenas
         metadata = self._competition.get_metadata(arena)
         score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
@@ -180,7 +181,7 @@ class Server(object):
         data = {arena: {SendKeys.CURRENT_SCORES: new_score}}
         return json.dumps(data)
 
-    async def _send_data_to_all(self, data):
+    async def _send_data_to_all(self, data: dict):
         # print(f"Sending {data} to {len(self._clients)} clients")
         if self._clients:  # asyncio.wait doesn't accept an empty list
             message = json.dumps(data)
@@ -205,8 +206,8 @@ def select_defaults_in_server(server):
 
 if __name__ == "__main__":
     print("Creating server")
-    path = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
-    server = Server(path, "RoboCup 2021")
+    data_path = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
+    server = Server(data_path, "RoboCup 2021")
     select_defaults_in_server(server)
     start_server = websockets.serve(server.serve, "localhost", 6789)
 

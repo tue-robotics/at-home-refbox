@@ -19,3 +19,21 @@ class MetaData(_MetaData):
     @classmethod
     def from_dict(cls, data):
         return cls(data["team"], data["challenge"], int(data["attempt"]))
+
+
+class SendKeys(object):
+    EVENT = "event"
+    METADATA = "metadata"
+    CHALLENGE_INFO = "challenge_info"
+    CURRENT_SCORES = "current_scores"
+    STANDINGS = "standings"
+
+
+class ReceiveKeys(object):
+    SETTING = "setting"
+    SCORE = "score"
+
+
+class SettingKeys(object):
+    TEAM = "team"
+    CHALLENGE = "challenge"

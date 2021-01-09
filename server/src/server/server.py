@@ -17,6 +17,7 @@ import websockets
 
 from competition import Competition
 from score_register import ScoreRegister
+from server_types import ReceiveKeys, SendKeys, SettingKeys
 
 logging.basicConfig()
 
@@ -102,10 +103,10 @@ class Server(object):
                         continue
 
                     arena_data = data[arena]
-                    if "setting" in arena_data:
-                        await self._on_setting(arena, arena_data)
-                    elif "score" in arena_data:
-                        await self._on_score(arena, arena_data)
+                    if ReceiveKeys.SETTING in arena_data:
+                        await self._on_setting(arena, arena_data[ReceiveKeys.SETTING])
+                    elif ReceiveKeys.SCORE in arena_data:
+                        await self._on_score(arena, arena_data[ReceiveKeys.SCORE])
                     else:
                         logging.error("unsupported event: {}", data)
         finally:
@@ -137,20 +138,19 @@ class Server(object):
         metadata = self._competition.get_metadata(arena)
         data = {arena:
             {
-                "event": self._competition.event,
-                "metadata": metadata.to_dict(),
-                "challenge_info": get_challenge_info_dict(metadata.challenge),
-                "standings": standings,
+                SendKeys.EVENT: self._competition.event,
+                SendKeys.METADATA: metadata.to_dict(),
+                SendKeys.CHALLENGE_INFO: get_challenge_info_dict(metadata.challenge),
+                SendKeys.STANDINGS: standings,
             },
         }
         return json.dumps(data)
 
-    async def _on_setting(self, arena, data):
-        setting = data["setting"]
-        if "team" in setting:
-            await self._on_set_team(arena, setting["team"])
-        if "challenge" in setting:
-            await self._on_set_challenge(arena, setting["challenge"])
+    async def _on_setting(self, arena, setting):
+        if SettingKeys.TEAM in setting:
+            await self._on_set_team(arena, setting[SettingKeys.TEAM])
+        if SettingKeys.CHALLENGE in setting:
+            await self._on_set_challenge(arena, setting[SettingKeys.CHALLENGE])
         # else:
         #     print(f"Cannot update setting: {data}")
         #     return
@@ -176,16 +176,17 @@ class Server(object):
         new_score = self._score_register.get_score(metadata, score_table)
         data = {
             arena: {
-                "metadata": metadata.to_dict(),
-                "challenge_info": challenge_info,
-                "current_scores": new_score,
+                SendKeys.METADATA: metadata.to_dict(),
+                SendKeys.CHALLENGE_INFO: challenge_info,
+                SendKeys.CURRENT_SCORES: new_score,
             }
         }
+        print(f"Challenge data: {data}")
         await self._send_data_to_all(data)
 
-    async def _on_score(self, arena, data):
+    async def _on_score(self, arena, score):
         metadata = self._competition.get_metadata(arena)  # type: dict
-        for key, value in data["score"].items():
+        for key, value in score.items():
             self._score_register.register_score(
                 metadata=metadata, score_key=int(key), score_increment=value,
             )
@@ -196,7 +197,7 @@ class Server(object):
         metadata = self._competition.get_metadata(arena)
         score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
         new_score = self._score_register.get_score(metadata, score_table)
-        data = {arena: {"current_scores": new_score}}
+        data = {arena: {SendKeys.CURRENT_SCORES: new_score}}
         return json.dumps(data)
 
     async def _send_data_to_all(self, data):

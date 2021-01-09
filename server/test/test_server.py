@@ -104,7 +104,7 @@ async def test_metadata(tmpdir):
 async def test_set_team(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()
-    arena_data = {"setting": {"team": "Hibikino Musashi"}}
+    arena_data = {"team": "Hibikino Musashi"}
     # noinspection PyProtectedMember
     await server._on_setting(ARENA, arena_data)
     _check_data(client, ["metadata", "current_scores"])
@@ -114,7 +114,7 @@ async def test_set_team(tmpdir):
 async def test_set_challenge(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()
-    arena_data = {"setting": {"challenge": "Restaurant"}}
+    arena_data = {"challenge": "Restaurant"}
     # noinspection PyProtectedMember
     await server._on_setting(ARENA, arena_data)
     _check_data(client, ["metadata", "challenge_info", "current_scores"])
@@ -142,7 +142,7 @@ async def test_challenge_info(tmpdir):
 async def test_score(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()
-    data = {"score": {SCORE_KEY: SCORE_VALUE}}
+    data = {SCORE_KEY: SCORE_VALUE}
     # noinspection PyProtectedMember
     await server._on_score(ARENA, data)
     assert(any(["current_scores" in item for item in client.get_arena_arg_list()]))

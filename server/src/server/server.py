@@ -31,11 +31,25 @@ score_table = [
 ]
 
 
-challenge_info = {
-  "Cocktail party": {
-    "description": "Enter the arena, take the orders of the three guests trying to yet your attention, serve the drinks and exit the arena",
-  },
-}
+from collections import OrderedDict
+CHALLENGE_INFO = OrderedDict([
+    (
+        "Cocktail party", {
+            "description": "Enter the arena, take the orders of the three guests trying to yet your attention, "
+                           "serve the drinks and exit the arena"
+        }
+    ),
+    (
+        "Restaurant", {
+            "description": "Find the customers trying to get their attention and ask what they would like. "
+                           "Retrieve the orders from the bar and serve them to the customers"
+        }
+    ),
+])
+
+
+def get_challenge_info_dict(challenge):
+    return {challenge: CHALLENGE_INFO[challenge]} if challenge else {challenge: {}}
 
 
 standings = [
@@ -116,12 +130,14 @@ class Server(object):
     # * convenient to do this per arena, hence:
     #   data = {'A': {metadata: ..., score_table: ..., challenge_info: ..., current_scores: ...}, 'standings': ...}
     def _get_data_on_registration(self):
-        data = {"A":
+        arena = "A"
+        metadata = self._competition.get_metadata(arena)
+        data = {arena:
             {
                 "event": self._competition.event,
-                "metadata": self._competition.get_metadata_dict("A"),
+                "metadata": metadata.to_dict(),
                 "score_table": score_table,
-                "challenge_info": challenge_info,
+                "challenge_info": get_challenge_info_dict(metadata.challenge),
                 "standings": standings,
             },
         }
@@ -130,20 +146,39 @@ class Server(object):
     async def _on_setting(self, arena, data):
         setting = data["setting"]
         if "team" in setting:
-            self._competition.set_team(arena, setting["team"])
-            metadata = self._competition.get_metadata(arena)
-            new_score = self._score_register.get_score(metadata, score_table)
-            message = json.dumps({
-                arena: {
-                    "metadata": metadata.to_dict(),
-                    "current_scores": new_score,
-                }
-            })
+            await self._on_set_team(arena, setting["team"])
+        if "challenge" in setting:
+            await self._on_set_challenge(arena, setting["challenge"])
         else:
             print(f"Cannot update setting: {data}")
             return
-        if self._clients:  # asyncio.wait doesn't accept an empty list
-            await asyncio.wait([client.send(message) for client in self._clients])
+
+    async def _on_set_team(self, arena, team):
+        self._competition.set_team(arena, team)
+        metadata = self._competition.get_metadata(arena)
+        new_score = self._score_register.get_score(metadata, score_table)
+        data = {
+            arena: {
+                "metadata": metadata.to_dict(),
+                "current_scores": new_score,
+            }
+        }
+        await self._send_data_to_all(data)
+
+    async def _on_set_challenge(self, arena, challenge):
+        self._competition.set_challenge(arena, challenge)
+        metadata = self._competition.get_metadata(arena)
+        challenge_info = get_challenge_info_dict(metadata.challenge)
+        new_score = self._score_register.get_score(metadata, score_table)
+        data = {
+            arena: {
+                "metadata": metadata.to_dict(),
+                "challenge_info": challenge_info,
+                "current_scores": new_score,
+            }
+        }
+        print(data)
+        await self._send_data_to_all(data)
 
     async def _on_score(self, arena, data):
         metadata = self._competition.get_metadata(arena)  # type: dict
@@ -153,19 +188,18 @@ class Server(object):
             )
         await self._notify_state()
 
-    # @staticmethod
-    # def _get_metadata(arena):  # Shouldn't be static once setting metadata is possible
-    #     arena_metadata = METADATA[arena]
-    #     return MetaData(
-    #         arena_metadata["event"], arena_metadata["team"], arena_metadata["challenge"], arena_metadata["attempt"]
-    #     )
-
     def _get_score_message(self):
         arena = "A"  # ToDo: allow multiple arenas
         metadata = self._competition.get_metadata(arena)
         new_score = self._score_register.get_score(metadata, score_table)
         data = {arena: {"current_scores": new_score}}
         return json.dumps(data)
+
+    async def _send_data_to_all(self, data):
+        print(f"Sending {data} to {len(self._clients)}")
+        if self._clients:  # asyncio.wait doesn't accept an empty list
+            message = json.dumps(data)
+            await asyncio.wait([client.send(message) for client in self._clients])
 
     # ToDo: change to 'notify score'
     async def _notify_state(self):

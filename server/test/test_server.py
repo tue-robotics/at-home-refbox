@@ -105,11 +105,21 @@ async def test_metadata(tmpdir):
 @pytest.mark.asyncio
 async def test_set_team(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
-    arena_data = {"setting": {"team": "Hibikino Musashi"}}
     client.reset_mock()
+    arena_data = {"setting": {"team": "Hibikino Musashi"}}
     # noinspection PyProtectedMember
     await server._on_setting(ARENA, arena_data)
     _check_data(client, ["metadata", "current_scores"])
+
+
+@pytest.mark.asyncio
+async def test_set_challenge(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    client.reset_mock()
+    arena_data = {"setting": {"challenge": "Restaurant"}}
+    # noinspection PyProtectedMember
+    await server._on_setting(ARENA, arena_data)
+    _check_data(client, ["metadata", "challenge_info", "current_scores"])
 
 
 @pytest.mark.asyncio
@@ -124,11 +134,3 @@ async def test_score(tmpdir):
         if "current_scores" in arena_data:
             scores = {int(key): value for key, value in arena_data["current_scores"].items()}
             assert scores[SCORE_KEY] == SCORE_VALUE
-
-
-
-
-
-
-# @pytest.mark.asyncio
-# async def test_set_challenge():

@@ -21,35 +21,38 @@ from score_register import ScoreRegister
 logging.basicConfig()
 
 
-# Static data, retrieved directly from the database
-score_table = [
-  {"key": 123, "description": 'Enter arena', "scoreIncrement": 100, "maxScore": 100},
-  {"key": 124, "description": 'Pick up drink', "scoreIncrement": 100, "maxScore": 300},
-  {"key": 125, "description": 'Deliver drink', "scoreIncrement": 100, "maxScore": 300},
-  {"key": 126, "description": 'Correct person', "scoreIncrement": 100, "maxScore": 300},
-  {"key": 127, "description": 'Exit arena', "scoreIncrement": 100, "maxScore": 100},
+CHALLENGE_INFO = [
+    {
+        "name": "Cocktail party",
+        "description": "Enter the arena, take the orders of the three guests trying to yet your attention, "
+                       "serve the drinks and exit the arena",
+        "score_table": [
+                {"key": 123, "description": 'Enter arena', "scoreIncrement": 100, "maxScore": 100},
+                {"key": 124, "description": 'Pick up drink', "scoreIncrement": 100, "maxScore": 300},
+                {"key": 125, "description": 'Deliver drink', "scoreIncrement": 100, "maxScore": 300},
+                {"key": 126, "description": 'Correct person', "scoreIncrement": 100, "maxScore": 300},
+                {"key": 127, "description": 'Exit arena', "scoreIncrement": 100, "maxScore": 100},
+        ],
+    },
+    {
+        "name": "Restaurant",
+        "description": "Find the customers trying to get their attention and ask what they would like. "
+                       "Retrieve the orders from the bar and serve them to the customers",
+        "score_table": [
+            {"key": 223, "description": 'Detect bar', "scoreIncrement": 100, "maxScore": 100},
+            {"key": 224, "description": 'Find waving person', "scoreIncrement": 200, "maxScore": 600},
+            {"key": 225, "description": 'Understand order', "scoreIncrement": 100, "maxScore": 300},
+            {"key": 226, "description": 'Deliver order', "scoreIncrement": 200, "maxScore": 600},
+        ],
+    },
 ]
 
 
-from collections import OrderedDict
-CHALLENGE_INFO = OrderedDict([
-    (
-        "Cocktail party", {
-            "description": "Enter the arena, take the orders of the three guests trying to yet your attention, "
-                           "serve the drinks and exit the arena"
-        }
-    ),
-    (
-        "Restaurant", {
-            "description": "Find the customers trying to get their attention and ask what they would like. "
-                           "Retrieve the orders from the bar and serve them to the customers"
-        }
-    ),
-])
-
-
 def get_challenge_info_dict(challenge):
-    return {challenge: CHALLENGE_INFO[challenge]} if challenge else {challenge: {}}
+    if challenge:
+        return [info_dict for info_dict in CHALLENGE_INFO if info_dict["name"] == challenge][0] if challenge else {}
+    else:
+        return {"name": {}, "description": "", "score_table": []}
 
 
 standings = [
@@ -136,7 +139,6 @@ class Server(object):
             {
                 "event": self._competition.event,
                 "metadata": metadata.to_dict(),
-                "score_table": score_table,
                 "challenge_info": get_challenge_info_dict(metadata.challenge),
                 "standings": standings,
             },
@@ -156,6 +158,7 @@ class Server(object):
     async def _on_set_team(self, arena, team):
         self._competition.set_team(arena, team)
         metadata = self._competition.get_metadata(arena)
+        score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
         new_score = self._score_register.get_score(metadata, score_table)
         data = {
             arena: {
@@ -169,6 +172,7 @@ class Server(object):
         self._competition.set_challenge(arena, challenge)
         metadata = self._competition.get_metadata(arena)
         challenge_info = get_challenge_info_dict(metadata.challenge)
+        score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
         new_score = self._score_register.get_score(metadata, score_table)
         data = {
             arena: {
@@ -177,7 +181,6 @@ class Server(object):
                 "current_scores": new_score,
             }
         }
-        print(data)
         await self._send_data_to_all(data)
 
     async def _on_score(self, arena, data):
@@ -186,23 +189,25 @@ class Server(object):
             self._score_register.register_score(
                 metadata=metadata, score_key=int(key), score_increment=value,
             )
-        await self._notify_state()
+        await self._notify_score()
 
     def _get_score_message(self):
         arena = "A"  # ToDo: allow multiple arenas
         metadata = self._competition.get_metadata(arena)
+        score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
+        print(f"Score table: {score_table}")
         new_score = self._score_register.get_score(metadata, score_table)
         data = {arena: {"current_scores": new_score}}
         return json.dumps(data)
 
     async def _send_data_to_all(self, data):
-        print(f"Sending {data} to {len(self._clients)}")
+        # print(f"Sending {data} to {len(self._clients)}")
         if self._clients:  # asyncio.wait doesn't accept an empty list
             message = json.dumps(data)
             await asyncio.wait([client.send(message) for client in self._clients])
 
     # ToDo: change to 'notify score'
-    async def _notify_state(self):
+    async def _notify_score(self):
         if self._clients:  # asyncio.wait doesn't accept an empty list
             message = self._get_score_message()
             await asyncio.wait([client.send(message) for client in self._clients])

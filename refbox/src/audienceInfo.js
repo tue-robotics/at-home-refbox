@@ -18,7 +18,7 @@ function AudienceHeader(props) {
 
 function ChallengeDescription(props) {
   const defaultDescription = 'Here a description of the challenge should be displayed';
-  const description = props.info.description ? props.info.description : defaultDescription;
+  const description = props.description ? props.description : defaultDescription;
   return (
     <div>
       <h2>{props.challenge}</h2>
@@ -162,7 +162,7 @@ class AudienceInfo extends React.Component {
       challenge: '',
       team: '',
       attempt: '',
-      challengeInfo: {'description': ''},
+      challengeDescription: '',
       scoreTable: [],
       currentScore: {},
       highlightScore: null,
@@ -208,8 +208,8 @@ class AudienceInfo extends React.Component {
     if ('metadata' in data) {
       this.updateMetaData(data.metadata);
     }
-    if ('score_table' in data) {
-      this.updateScoreTable(data.score_table)
+    if ('challenge_info' in data) {
+      this.updateChallengeInfo(data.challenge_info)
     }
     // ToDo: this might only work if score table has already been set
     // if ('current_scores' in message && this.state.arena in message.current_scores) {
@@ -235,8 +235,11 @@ class AudienceInfo extends React.Component {
     })
   }
 
-  updateScoreTable(data) {
-    this.setState({scoreTable: data});
+  updateChallengeInfo(data) {
+    this.setState({
+      challengeDescription: data.description,
+      scoreTable: data.score_table,
+    })
   }
 
   updateScores(data) {
@@ -268,7 +271,7 @@ class AudienceInfo extends React.Component {
         <p></p>
         <ChallengeDescription
           challenge={this.state.challenge}
-          info={this.state.challengeInfo}
+          description={this.state.challengeDescription}
         />
         <p></p>
         <AudienceTables

@@ -16,7 +16,7 @@ TEAM = "Tech United Eindhoven"
 CHALLENGE = "Restaurant"
 ATTEMPT = 1
 ARENA = "A"
-SCORE_KEY = 123
+SCORE_KEY = 223
 SCORE_VALUE = 100
 
 
@@ -54,8 +54,6 @@ class MockSocket(object):
 
 def _check_data(client, required_keys, arena=ARENA):
     call_args_list = client.send.call_args_list
-    for item in call_args_list:
-        print(item)
     for data_key in required_keys:
         assert any([data_key in json.loads(call_arg.args[0])[arena] for call_arg in call_args_list]), \
             f"'{data_key}' has not been sent to client"
@@ -120,6 +118,24 @@ async def test_set_challenge(tmpdir):
     # noinspection PyProtectedMember
     await server._on_setting(ARENA, arena_data)
     _check_data(client, ["metadata", "challenge_info", "current_scores"])
+
+
+@pytest.mark.asyncio
+async def test_challenge_info(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    client.reset_mock()
+    arena_data = {"setting": {"challenge": "Restaurant"}}
+    # noinspection PyProtectedMember
+    await server._on_setting(ARENA, arena_data)
+    call_args_list = client.send.call_args_list
+    call_dicts = [json.loads(call_arg.args[0])[ARENA] for call_arg in call_args_list]
+    # ToDo: use 'get_arena_arg_list'
+    for call_dict in call_dicts:
+        print("\n")
+        if "challenge_info" in call_dict:
+            for key in ["name", "description", "score_table"]:
+                assert(key in call_dict["challenge_info"])
+        print(call_dict)
 
 
 @pytest.mark.asyncio

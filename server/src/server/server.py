@@ -162,7 +162,6 @@ class Server(object):
             SendKeys.CURRENT_SCORES: score,
             SendKeys.STANDINGS: standings,
         }
-        print(f"Get data: {data}")
         return {arena: {k: v for k, v in data.items() if k in requested_keys}}
 
     async def _on_score(self, arena: str, score: typing.Dict[int, int]):
@@ -171,26 +170,13 @@ class Server(object):
             self._score_register.register_score(
                 metadata=metadata, score_key=int(key), score_increment=value,
             )
-        await self._notify_score()
-
-    def _get_score_message(self) -> str:
-        arena = "A"  # ToDo: allow multiple arenas
-        metadata = self._competition.get_metadata(arena)
-        score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
-        new_score = self._score_register.get_score(metadata, score_table)
-        data = {arena: {SendKeys.CURRENT_SCORES: new_score}}
-        return json.dumps(data)
+        data = self._get_data(arena, [SendKeys.CURRENT_SCORES])
+        await self._send_data_to_all(data)
 
     async def _send_data_to_all(self, data: dict):
         # print(f"Sending {data} to {len(self._clients)} clients")
         if self._clients:  # asyncio.wait doesn't accept an empty list
             message = json.dumps(data)
-            await asyncio.wait([client.send(message) for client in self._clients])
-
-    # ToDo: change to 'notify score'
-    async def _notify_score(self):
-        if self._clients:  # asyncio.wait doesn't accept an empty list
-            message = self._get_score_message()
             await asyncio.wait([client.send(message) for client in self._clients])
 
     async def _unregister(self, websocket):

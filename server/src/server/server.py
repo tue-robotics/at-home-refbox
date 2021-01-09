@@ -151,9 +151,9 @@ class Server(object):
             await self._on_set_team(arena, setting["team"])
         if "challenge" in setting:
             await self._on_set_challenge(arena, setting["challenge"])
-        else:
-            print(f"Cannot update setting: {data}")
-            return
+        # else:
+        #     print(f"Cannot update setting: {data}")
+        #     return
 
     async def _on_set_team(self, arena, team):
         self._competition.set_team(arena, team)
@@ -195,7 +195,6 @@ class Server(object):
         arena = "A"  # ToDo: allow multiple arenas
         metadata = self._competition.get_metadata(arena)
         score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
-        print(f"Score table: {score_table}")
         new_score = self._score_register.get_score(metadata, score_table)
         data = {arena: {"current_scores": new_score}}
         return json.dumps(data)

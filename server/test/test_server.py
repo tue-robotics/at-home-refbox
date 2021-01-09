@@ -99,14 +99,13 @@ async def test_metadata(tmpdir):
     assert metadata
     assert all([item in metadata for item in ["team", "challenge", "attempt"]])
 
-
 @pytest.mark.asyncio
 async def test_set_team(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()
-    arena_data = {"team": "Hibikino Musashi"}
+    data = {ARENA: {"setting": {"team": "Hibikino Musashi"}}}
     # noinspection PyProtectedMember
-    await server._on_setting(ARENA, arena_data)
+    await server._process_message(json.dumps(data))
     _check_data(client, ["metadata", "current_scores"])
 
 
@@ -114,9 +113,9 @@ async def test_set_team(tmpdir):
 async def test_set_challenge(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()
-    arena_data = {"challenge": "Restaurant"}
+    data = {ARENA: {"setting": {"challenge": "Restaurant"}}}
     # noinspection PyProtectedMember
-    await server._on_setting(ARENA, arena_data)
+    await server._process_message(json.dumps(data))
     _check_data(client, ["metadata", "challenge_info", "current_scores"])
 
 
@@ -124,9 +123,9 @@ async def test_set_challenge(tmpdir):
 async def test_challenge_info(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()
-    arena_data = {"setting": {"challenge": "Restaurant"}}
+    data = {ARENA: {"setting": {"challenge": "Restaurant"}}}
     # noinspection PyProtectedMember
-    await server._on_setting(ARENA, arena_data)
+    await server._process_message(json.dumps(data))
     call_args_list = client.send.call_args_list
     call_dicts = [json.loads(call_arg.args[0])[ARENA] for call_arg in call_args_list]
     # ToDo: use 'get_arena_arg_list'
@@ -142,9 +141,9 @@ async def test_challenge_info(tmpdir):
 async def test_score(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()
-    data = {SCORE_KEY: SCORE_VALUE}
+    data = {ARENA: {"score": {SCORE_KEY: SCORE_VALUE}}}
     # noinspection PyProtectedMember
-    await server._on_score(ARENA, data)
+    await server._process_message(json.dumps(data))
     assert(any(["current_scores" in item for item in client.get_arena_arg_list()]))
     for arena_data in client.get_arena_arg_list():
         if "current_scores" in arena_data:

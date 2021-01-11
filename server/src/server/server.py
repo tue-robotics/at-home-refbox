@@ -136,6 +136,8 @@ class Server(object):
             await self._on_set_team(arena, setting[SettingKeys.TEAM])
         if SettingKeys.CHALLENGE in setting:
             await self._on_set_challenge(arena, setting[SettingKeys.CHALLENGE])
+        if SettingKeys.ATTEMPT in setting:
+            await self._on_set_attempt(arena, setting[SettingKeys.ATTEMPT])
         # else:
         #     print(f"Cannot update setting: {data}")
         #     return
@@ -148,6 +150,11 @@ class Server(object):
     async def _on_set_challenge(self, arena: str, challenge: str):
         self._competition.set_challenge(arena, challenge)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CHALLENGE_INFO, SendKeys.CURRENT_SCORES])
+        await self._send_data_to_all(data)
+
+    async def _on_set_attempt(self, arena: str, challenge: str):
+        self._competition.set_attempt(arena, challenge)
+        data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
     def _get_data(self, arena: str, requested_keys: typing.List[str]) -> dict:

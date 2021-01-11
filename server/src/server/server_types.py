@@ -37,3 +37,4 @@ class ReceiveKeys(object):
 class SettingKeys(object):
     TEAM = "team"
     CHALLENGE = "challenge"
+    ATTEMPT = "attempt"

@@ -1,10 +1,23 @@
-from collections import namedtuple
 import json
 
-_MetaData = namedtuple('MetaData', ['team', 'challenge', 'attempt'])
+class MetaData(object):
+    def __init__(self, team, challenge, attempt):
+        self._team = team
+        self._challenge = challenge
+        self._attempt = int(attempt)
 
-# noinspection PyClassHasNoInit
-class MetaData(_MetaData):
+    @property
+    def team(self):
+        return self._team
+
+    @property
+    def challenge(self):
+        return self._challenge
+
+    @property
+    def attempt(self):
+        return self._attempt
+
     def to_dict(self):
         return {"team": self.team, "challenge": self.challenge, "attempt": str(self.attempt)}
 
@@ -19,6 +32,11 @@ class MetaData(_MetaData):
     @classmethod
     def from_dict(cls, data):
         return cls(data["team"], data["challenge"], int(data["attempt"]))
+
+    def __eq__(self, other):
+        return  self.team == other.team and \
+            self.challenge == other.challenge and \
+            self.attempt == other.attempt
 
 
 class SendKeys(object):

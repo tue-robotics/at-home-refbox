@@ -161,6 +161,35 @@ async def test_set_attempt(tmpdir):
 
 
 @pytest.mark.asyncio
+async def test_set_attempt_str(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    await add_score(server)
+    client.reset_mock()
+    data = {ARENA: {"setting": {"attempt": "2"}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    client.check_data(["metadata", "current_scores"])
+    client.check_score(score_value=0)
+
+
+@pytest.mark.asyncio
+async def test_set_attempt_twice(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    await add_score(server, SCORE_KEY, SCORE_VALUE)
+    data = {ARENA: {"setting": {"attempt": "2"}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    await add_score(server, SCORE_KEY+1, SCORE_VALUE)
+    client.reset_mock()
+    data = {ARENA: {"setting": {"attempt": "1"}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    print(f"Server state: {server._score_register._cache}")
+    client.check_data(["metadata", "current_scores"])
+    client.check_score()
+
+
+@pytest.mark.asyncio
 async def test_score(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()

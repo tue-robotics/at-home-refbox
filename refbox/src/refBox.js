@@ -76,6 +76,12 @@ const AVAILABLE_CHALLENGES = [
 ]
 
 
+const AVAILABLE_ATTEMPTS = [
+  '1',
+  '2',
+]
+
+
 class SettingSelector extends React.Component {
   constructor(props) {
     super(props);
@@ -140,7 +146,6 @@ class SettingSelector extends React.Component {
 
 class MetaDataSelector extends React.Component {
   render() {
-    const available_attempts = [1];
     return (
       <Container className='p-3 mt-2 bg-primary text-white'>
         <SettingSelector 
@@ -157,7 +162,7 @@ class MetaDataSelector extends React.Component {
         />
         <SettingSelector 
           setting='attempt'
-          options={available_attempts}
+          options={AVAILABLE_ATTEMPTS}
           current={this.props.attempt}
           prefix='Attempt: '
           onSelect={this.props.onSelect}

@@ -7,7 +7,7 @@ import './App.css';
 import RefBox from './refBox';
 import AudienceInfo from './audienceInfo';
 
-// ToDo: this must obviously be split into two apps. 
+// ToDo: this must obviously be split into two apps.
 class DoubleApp extends React.Component {
   render() {
     return (

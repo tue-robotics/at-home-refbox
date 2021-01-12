@@ -1,6 +1,8 @@
 import React from 'react';
 import Container from 'react-bootstrap/Container';
 
+import Websocket from 'react-websocket';
+
 
 function AudienceHeader(props) {
   let arenaDescription = 'Arena: ' + props.arena;
@@ -13,7 +15,7 @@ function AudienceHeader(props) {
       <p>{arenaDescription}</p>
     </div>
   );
-}  
+}
 
 
 function ChallengeDescription(props) {
@@ -139,7 +141,7 @@ class AudienceTables extends React.Component {
           </div>
         </div>
         <div className='col-md-6'>
-          <Standings 
+          <Standings
             interface={this.props.interface}
             team={this.props.team}
             standings={this.props.standings}
@@ -167,38 +169,24 @@ class AudienceInfo extends React.Component {
       currentScore: {},
       highlightScore: null,
       standings: [],
-    } 
+    }
+    this.onMessage = this.onMessage.bind(this);
   }
 
-  // Websocket use based on 
-  // https://dev.to/finallynero/using-websockets-in-react-4fkp
-  // instance of websocket connection as a class property
-  ws = new WebSocket('ws://localhost:6789')
+  onMessage(evt) {
+    // listen to data sent from the websocket server
+    const message = JSON.parse(evt);
+    console.log('Message: ', message);
+    this.setState({dataFromServer: message});
+    if (this.state.arena in message) {
+      this.updateArenaData(message[this.state.arena]);
+    }
+    if ('metadata' in message && this.state.arena in message.metadata) {
+      this.updateMetaData(message.metadata[this.state.arena]);
+    }
+  }
 
   componentDidMount() {
-    this.ws.onopen = () => {
-      // on connecting, do nothing but log it to the console
-      console.log('connected')
-    }
-
-    this.ws.onmessage = evt => {
-      // listen to data sent from the websocket server
-      const message = JSON.parse(evt.data)
-      console.log('Message: ', message);
-      this.setState({dataFromServer: message})
-      if (this.state.arena in message) {
-        this.updateArenaData(message[this.state.arena]);
-      }
-      if ('metadata' in message && this.state.arena in message.metadata) {
-        this.updateMetaData(message.metadata[this.state.arena])
-      }
-    }
-
-    this.ws.onclose = () => {
-      console.log('disconnected')
-      // automatically try to reconnect on connection loss
-    }
-
   }
 
   updateArenaData(data) {
@@ -259,7 +247,8 @@ class AudienceInfo extends React.Component {
   render() {
     return (
       <div>
-        <AudienceHeader 
+        <Websocket url='ws://localhost:6789' onMessage={this.onMessage} reconnect={true} />
+        <AudienceHeader
           event={this.state.event}
           arena={this.state.arena}
           team={this.state.team}

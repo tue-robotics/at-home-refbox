@@ -190,9 +190,6 @@ class RefBox extends React.Component {
     }
   }
 
-  componentDidMount() {
-  }
-
   updateArenaData(data) {
     if ('event' in data) {
       this.updateStaticData(data);

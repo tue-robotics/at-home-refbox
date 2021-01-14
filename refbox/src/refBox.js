@@ -2,6 +2,7 @@ import React from 'react';
 import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 
+import Websocket from 'react-websocket';
 
 
 class Action extends React.Component {
@@ -37,7 +38,7 @@ class ScoreTable extends React.Component {
  render() {
   const scoreTable = this.props.scoreTable;
   const actions = scoreTable.map((action, index) => {
-    let scoreValue = this.props.currentScore ? this.props.currentScore[action.key] : 0; 
+    let scoreValue = this.props.currentScore ? this.props.currentScore[action.key] : 0;
     return (
     <Action
       key={action.key}
@@ -48,7 +49,7 @@ class ScoreTable extends React.Component {
       maxScore={action.maxScore}
       onScore={this.props.onScore}
     />
-    );  
+    );
   });
   return (
     <Container className='p-3 mt-2 bg-primary text-white'>
@@ -56,10 +57,10 @@ class ScoreTable extends React.Component {
         <tbody>
           {actions}
         </tbody>
-      </table>    
+      </table>
     </Container>
   );
-  } 
+  }
 }
 
 
@@ -111,7 +112,7 @@ class SettingSelector extends React.Component {
         <div>Select team:</div>
         <div>{options}</div>
       </Container>
-    ) 
+    )
   }
 
   renderCurrent() {
@@ -139,19 +140,19 @@ class MetaDataSelector extends React.Component {
     const available_attempts = [1];
     return (
       <Container className='p-3 mt-2 bg-primary text-white'>
-        <SettingSelector 
+        <SettingSelector
           setting='challenge'
           options={available_challenges}
           current={this.props.challenge}
           onSelect={this.props.onSelect}
         />
-        <SettingSelector 
+        <SettingSelector
           setting='team'
           options={AVAILABLE_TEAMS}
           current={this.props.team}
           onSelect={this.props.onSelect}
         />
-        <SettingSelector 
+        <SettingSelector
           setting='attempt'
           options={available_attempts}
           current={this.props.attempt}
@@ -176,34 +177,17 @@ class RefBox extends React.Component {
       attempt: '',
       scoreTable: [],
     }
+    this.onMessage = this.onMessage.bind(this);
   }
 
-  // Websocket use based on 
-  // https://dev.to/finallynero/using-websockets-in-react-4fkp
-  // instance of websocket connection as a class property
-  ws = new WebSocket('ws://localhost:6789')
-
-  componentDidMount() {
-    this.ws.onopen = () => {
-      // on connecting, do nothing but log it to the console
-      console.log('connected')
+  onMessage(evt) {
+    // listen to data sent from the websocket server
+    const message = JSON.parse(evt);
+    console.log('Message: ', message);
+    this.setState({dataFromServer: message});
+    if (this.state.arena in message) {
+      this.updateArenaData(message[this.state.arena]);
     }
-
-    this.ws.onmessage = evt => {
-      // listen to data sent from the websocket server
-      const message = JSON.parse(evt.data)
-      console.log('Message: ', message);
-      this.setState({dataFromServer: message})
-      if (this.state.arena in message) {
-        this.updateArenaData(message[this.state.arena]);
-      }
-    }
-
-    this.ws.onclose = () => {
-      console.log('disconnected')
-      // automatically try to reconnect on connection loss
-    }
-
   }
 
   updateArenaData(data) {
@@ -267,7 +251,7 @@ class RefBox extends React.Component {
 
   sendMessage = (data) => {
     try {
-        this.ws.send(JSON.stringify(data));
+        this.ws.sendMessage(JSON.stringify(data));
     } catch (error) {
         console.log(error) // catch error
     }
@@ -278,6 +262,10 @@ class RefBox extends React.Component {
     const arenaDescription = 'Arena: ' + this.state.arena;
     return (
       <div>
+        <Websocket url='ws://localhost:6789' onMessage={this.onMessage} reconnect={true}
+                   ref={Websocket => {
+                     this.ws = Websocket;
+                   }} />
         <Container className='p-3 bg-primary text-white'>
           <div>{this.state.event}</div>
           <div>{arenaDescription}</div>
@@ -288,7 +276,7 @@ class RefBox extends React.Component {
           attempt={this.state.attempt}
           onSelect={this.sendSetting}
         />
-        <ScoreTable 
+        <ScoreTable
           scoreTable={this.state.scoreTable}
           onScore={this.sendScore}
           currentScore={this.state.currentScore}

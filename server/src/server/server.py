@@ -16,7 +16,7 @@ import typing
 import websockets
 
 # Server
-from competition import Competition
+from arenastates import ArenaStates
 from score_register import ScoreRegister
 from server_types import ReceiveKeys, SendKeys, SettingKeys
 
@@ -79,7 +79,7 @@ standings = [
 class Server(object):
     def __init__(self, path: str, event: str, nr_arenas: int=2):
         self._arenas = [chr(65 + i) for i in range(nr_arenas)]  # "A", "B", etc.
-        self._competition = Competition(event)
+        self._arenastates = ArenaStates(event)
         self._score_register = self._create_score_register(path, event)
         self._clients = set()
 
@@ -143,27 +143,27 @@ class Server(object):
         #     return
 
     async def _on_set_team(self, arena: str, team: str):
-        self._competition.set_team(arena, team)
+        self._arenastates.set_team(arena, team)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
     async def _on_set_challenge(self, arena: str, challenge: str):
-        self._competition.set_challenge(arena, challenge)
+        self._arenastates.set_challenge(arena, challenge)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CHALLENGE_INFO, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
     async def _on_set_attempt(self, arena: str, challenge: str):
-        self._competition.set_attempt(arena, challenge)
+        self._arenastates.set_attempt(arena, challenge)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
     def _get_data(self, arena: str, requested_keys: typing.List[str]) -> dict:
-        metadata = self._competition.get_metadata(arena)
+        metadata = self._arenastates.get_metadata(arena)
         challenge_info = get_challenge_info_dict(metadata.challenge)
         score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
         score = self._score_register.get_score(metadata, score_table)
         data = {
-            SendKeys.EVENT: self._competition.event,
+            SendKeys.EVENT: self._arenastates.event,
             SendKeys.METADATA: metadata.to_dict(),
             SendKeys.CHALLENGE_INFO: challenge_info,
             SendKeys.CURRENT_SCORES: score,
@@ -172,7 +172,7 @@ class Server(object):
         return {arena: {k: v for k, v in data.items() if k in requested_keys}}
 
     async def _on_score(self, arena: str, score: typing.Dict[int, int]):
-        metadata = self._competition.get_metadata(arena)  # type: dict
+        metadata = self._arenastates.get_metadata(arena)  # type: dict
         for key, value in score.items():
             self._score_register.register_score(
                 metadata=metadata, score_key=int(key), score_increment=value,
@@ -193,9 +193,9 @@ class Server(object):
 # noinspection PyProtectedMember
 def select_defaults_in_server(server):
     # Set some default values for easy testing
-    server._competition.set_team("A", "Tech United Eindhoven")
-    server._competition.set_challenge("A", "Cocktail party")
-    server._competition.set_attempt("A", 1)
+    server._arenastates.set_team("A", "Tech United Eindhoven")
+    server._arenastates.set_challenge("A", "Cocktail party")
+    server._arenastates.set_attempt("A", 1)
 
 if __name__ == "__main__":
     print("Creating server")

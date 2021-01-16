@@ -31,9 +31,9 @@ async def setup_default_server_and_client(server_path):
 # noinspection PyProtectedMember
 def _setup_default_server(server_path):
     server = Server(server_path, EVENT)
-    server._competition.set_team(ARENA, TEAM)
-    server._competition.set_challenge(ARENA, CHALLENGE)
-    server._competition.set_attempt(ARENA, ATTEMPT)
+    server._arenastates.set_team(ARENA, TEAM)
+    server._arenastates.set_challenge(ARENA, CHALLENGE)
+    server._arenastates.set_attempt(ARENA, ATTEMPT)
     return server
 
 

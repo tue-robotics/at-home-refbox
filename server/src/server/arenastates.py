@@ -1,7 +1,7 @@
 import copy
 from server_types import MetaData
 
-class Competition(object):
+class ArenaStates(object):
     def __init__(self, event):
         self._event = event
         self._metadatas = {

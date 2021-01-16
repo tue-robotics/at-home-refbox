@@ -167,18 +167,24 @@ class Server(object):
     def _get_data(self, arena: str, requested_keys: typing.List[str]) -> dict:
         metadata = self._arenastates.get_metadata(arena)
         challenge_info = get_challenge_info_dict(metadata.challenge)
-        score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
-        score = self._score_register.get_score(metadata, score_table)
-        data = {
-            SendKeys.EVENT: self._arenastates.event,
-            SendKeys.TEAMS: self._competition_info.list_teams(),
-            SendKeys.CHALLENGES: self._competition_info.list_challenges(),
-            SendKeys.METADATA: metadata.to_dict(),
-            SendKeys.CHALLENGE_INFO: challenge_info,
-            SendKeys.CURRENT_SCORES: score,
-            SendKeys.STANDINGS: standings,
-        }
-        return {arena: {k: v for k, v in data.items() if k in requested_keys}}
+        data = {}
+        if SendKeys.EVENT in requested_keys:
+            data[SendKeys.EVENT] = self._arenastates.event
+        if SendKeys.TEAMS in requested_keys:
+            data[SendKeys.TEAMS] = self._competition_info.list_teams()
+        if SendKeys.CHALLENGES in requested_keys:
+            data[SendKeys.CHALLENGES] = self._competition_info.list_challenges()
+        if SendKeys.METADATA in requested_keys:
+            data[SendKeys.METADATA] = metadata.to_dict()
+        if SendKeys.CHALLENGE_INFO in requested_keys:
+            data[SendKeys.CHALLENGE_INFO] = challenge_info
+        if SendKeys.CURRENT_SCORES in requested_keys:
+            score_table = challenge_info["score_table"]
+            score = self._score_register.get_score(metadata, score_table)
+            data[SendKeys.CURRENT_SCORES] = score
+        if SendKeys.STANDINGS in requested_keys:
+            data[SendKeys.STANDINGS] = standings
+        return {arena: data}
 
     async def _on_score(self, arena: str, score: typing.Dict[int, int]):
         metadata = self._arenastates.get_metadata(arena)  # type: dict

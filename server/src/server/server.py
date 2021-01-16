@@ -111,6 +111,7 @@ class Server(object):
             data.update(self._get_data(arena, [
                 SendKeys.EVENT,
                 SendKeys.TEAMS,
+                SendKeys.CHALLENGES,
                 SendKeys.METADATA,
                 SendKeys.CHALLENGE_INFO,
                 SendKeys.STANDINGS,
@@ -171,6 +172,7 @@ class Server(object):
         data = {
             SendKeys.EVENT: self._arenastates.event,
             SendKeys.TEAMS: self._competition_info.list_teams(),
+            SendKeys.CHALLENGES: self._competition_info.list_challenges(),
             SendKeys.METADATA: metadata.to_dict(),
             SendKeys.CHALLENGE_INFO: challenge_info,
             SendKeys.CURRENT_SCORES: score,

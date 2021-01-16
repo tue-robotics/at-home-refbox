@@ -97,6 +97,7 @@ async def test_registration(tmpdir):
     client.check_data([
         "event",
         "teams",
+        "challenges",
         "metadata",
         "challenge_info",
         "standings",

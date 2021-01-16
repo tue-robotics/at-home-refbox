@@ -20,6 +20,10 @@ class CompetitionInfo(object):
             challenges = yaml.safe_load(f)
         return challenges
 
+    @property
+    def event(self):
+        return self._event
+
     def list_teams(self):
         return list(self._teams)
 

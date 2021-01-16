@@ -3,15 +3,10 @@ from server_types import MetaData
 
 class ArenaStates(object):
     def __init__(self, event):
-        self._event = event
         self._metadatas = {
             "A": {"team": "", "challenge": "", "attempt": 0},
             "B": {"team": "", "challenge": "", "attempt": 0},
         }
-
-    @property
-    def event(self):
-        return self._event
 
     def set_team(self, arena, team):
         self._metadatas[arena].update({"team": team})

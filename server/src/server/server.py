@@ -169,7 +169,7 @@ class Server(object):
         challenge_info = get_challenge_info_dict(metadata.challenge)
         data = {}
         if SendKeys.EVENT in requested_keys:
-            data[SendKeys.EVENT] = self._arenastates.event
+            data[SendKeys.EVENT] = self._competition_info.event
         if SendKeys.TEAMS in requested_keys:
             data[SendKeys.TEAMS] = self._competition_info.list_teams()
         if SendKeys.CHALLENGES in requested_keys:

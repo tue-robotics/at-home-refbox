@@ -68,7 +68,18 @@ const AVAILABLE_TEAMS = [
   'Tech United Eindhoven',
   'Hibikino Musashi',
   'er@sers',
-  'Tiny Boy',
+]
+
+
+const AVAILABLE_CHALLENGES = [
+  'Cocktail party',
+  'Restaurant',
+]
+
+
+const AVAILABLE_ATTEMPTS = [
+  '1',
+  '2',
 ]
 
 
@@ -109,7 +120,7 @@ class SettingSelector extends React.Component {
     })
     return (
       <Container className='p3 mt-2 mb-2 bg-white text-secondary'>
-        <div>Select team:</div>
+        <div>Select {this.props.setting}:</div>
         <div>{options}</div>
       </Container>
     )
@@ -136,13 +147,11 @@ class SettingSelector extends React.Component {
 
 class MetaDataSelector extends React.Component {
   render() {
-    const available_challenges = ['Cocktail party'];
-    const available_attempts = [1];
     return (
       <Container className='p-3 mt-2 bg-primary text-white'>
         <SettingSelector
           setting='challenge'
-          options={available_challenges}
+          options={AVAILABLE_CHALLENGES}
           current={this.props.challenge}
           onSelect={this.props.onSelect}
         />
@@ -154,7 +163,7 @@ class MetaDataSelector extends React.Component {
         />
         <SettingSelector
           setting='attempt'
-          options={available_attempts}
+          options={AVAILABLE_ATTEMPTS}
           current={this.props.attempt}
           prefix='Attempt: '
           onSelect={this.props.onSelect}
@@ -175,6 +184,7 @@ class RefBox extends React.Component {
       challenge: '',
       team: '',
       attempt: '',
+      challengeDescription: '',
       scoreTable: [],
     }
     this.onMessage = this.onMessage.bind(this);
@@ -197,8 +207,8 @@ class RefBox extends React.Component {
     if ('metadata' in data) {
       this.updateMetaData(data.metadata);
     }
-    if ('score_table' in data) {
-      this.updateScoreTable(data.score_table)
+    if ('challenge_info' in data) {
+      this.updateChallengeInfo(data.challenge_info)
     }
     // ToDo: this might only work if score table has already been set
     // if ('current_scores' in message && this.state.arena in message.current_scores) {
@@ -221,8 +231,11 @@ class RefBox extends React.Component {
     })
   }
 
-  updateScoreTable(data) {
-    this.setState({scoreTable: data});
+  updateChallengeInfo(data) {
+    this.setState({
+      challengeDescription: data.description,
+      scoreTable: data.score_table,
+    })
   }
 
   updateScores(data) {

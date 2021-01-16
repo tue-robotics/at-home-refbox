@@ -72,11 +72,11 @@ def test_different_metadata(tmpdir):
     register = ScoreRegister(EVENT, os.path.join(tmpdir, "db.csv"))
     register.register_score(metadata=METADATA, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
     metadata2 = MetaData(METADATA.team, METADATA.challenge, METADATA.attempt+1)
-    register.register_score(metadata=metadata2, score_key=SCORE_KEY, score_increment=SCORE_INCREMENT)
+    register.register_score(metadata=metadata2, score_key=SCORE_KEY + 1, score_increment=2 * SCORE_INCREMENT)
     current_score = register.get_score(METADATA, SCORE_TABLE)
     assert current_score[SCORE_KEY] == SCORE_INCREMENT
     current_score = register.get_score(metadata2, SCORE_TABLE)
-    assert current_score[SCORE_KEY] == SCORE_INCREMENT
+    assert current_score[SCORE_KEY + 1] == 2 * SCORE_INCREMENT
 
 
 def test_get_score_negative(tmpdir):

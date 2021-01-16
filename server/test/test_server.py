@@ -16,20 +16,21 @@ TEAM = "Tech United Eindhoven"
 CHALLENGE = "Restaurant"
 ATTEMPT = 1
 ARENA = "A"
-SCORE_KEY = 123
+SCORE_KEY = 223
 SCORE_VALUE = 100
 
 
-async def setup_default_server_and_client(path):
-    server = _setup_default_server(path)
+async def setup_default_server_and_client(server_path):
+    server = _setup_default_server(server_path)
     client = MockSocket()
     # noinspection PyProtectedMember
     await server._register(client)
     return server, client
 
+
 # noinspection PyProtectedMember
-def _setup_default_server(path):
-    server = Server(path, EVENT)
+def _setup_default_server(server_path):
+    server = Server(server_path, EVENT)
     server._competition.set_team(ARENA, TEAM)
     server._competition.set_challenge(ARENA, CHALLENGE)
     server._competition.set_attempt(ARENA, ATTEMPT)
@@ -51,14 +52,23 @@ class MockSocket(object):
     def reset_mock(self):
         self.send.reset_mock()
 
+    def check_data(self, required_keys, arena=ARENA):
+        call_args_list = self.send.call_args_list
+        for data_key in required_keys:
+            assert any([data_key in json.loads(call_arg.args[0])[arena] for call_arg in call_args_list]), \
+                f"'{data_key}' has not been sent to client"
 
-def _check_data(client, required_keys, arena=ARENA):
-    call_args_list = client.send.call_args_list
-    for item in call_args_list:
-        print(item)
-    for data_key in required_keys:
-        assert any([data_key in json.loads(call_arg.args[0])[arena] for call_arg in call_args_list]), \
-            f"'{data_key}' has not been sent to client"
+    def check_score(self, score_key=SCORE_KEY, score_value=SCORE_VALUE):
+        for arena_data in self.get_arena_arg_list():  # type: dict
+            if "current_scores" in arena_data:
+                scores = {int(key): value for key, value in arena_data["current_scores"].items()}
+                assert scores[score_key] == score_value
+
+
+async def add_score(server, score_key=SCORE_KEY, score_value=SCORE_VALUE):
+    data = {ARENA: {"score": {score_key: score_value}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
 
 
 # Upon registration, we need to receive metadata, score table, challenge info and standings
@@ -79,7 +89,7 @@ def _check_data(client, required_keys, arena=ARENA):
 @pytest.mark.asyncio
 async def test_registration(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
-    _check_data(client, ["event", "metadata", "challenge_info", "standings"])
+    client.check_data(["event", "metadata", "challenge_info", "standings"])
 
 
 @pytest.mark.asyncio
@@ -88,14 +98,14 @@ async def test_registration_empty(tmpdir):
     client = MockSocket()
     # noinspection PyProtectedMember
     await server._register(client)
-    _check_data(client, ["event", "metadata",  "challenge_info", "standings"])
+    client.check_data(["event", "metadata",  "challenge_info", "standings"])
 
 
 @pytest.mark.asyncio
 async def test_metadata(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     metadata = {}
-    for data in client.get_arena_arg_list():
+    for data in client.get_arena_arg_list():  # type: dict
         if "metadata" in data:
             metadata = data["metadata"]
     assert metadata
@@ -105,30 +115,84 @@ async def test_metadata(tmpdir):
 @pytest.mark.asyncio
 async def test_set_team(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
-    arena_data = {"setting": {"team": "Hibikino Musashi"}}
     client.reset_mock()
+    data = {ARENA: {"setting": {"team": "Hibikino Musashi"}}}
     # noinspection PyProtectedMember
-    await server._on_setting(ARENA, arena_data)
-    _check_data(client, ["metadata", "current_scores"])
+    await server._process_message(json.dumps(data))
+    client.check_data(["metadata", "current_scores"])
+
+
+@pytest.mark.asyncio
+async def test_set_challenge(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    client.reset_mock()
+    data = {ARENA: {"setting": {"challenge": "Restaurant"}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    client.check_data(["metadata", "challenge_info", "current_scores"])
+
+
+@pytest.mark.asyncio
+async def test_challenge_info(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    client.reset_mock()
+    data = {ARENA: {"setting": {"challenge": "Restaurant"}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    call_args_list = client.send.call_args_list
+    call_dicts = [json.loads(call_arg.args[0])[ARENA] for call_arg in call_args_list]
+    # ToDo: use 'get_arena_arg_list'
+    for call_dict in call_dicts:  # type: dict
+        if "challenge_info" in call_dict:
+            for key in ["name", "description", "score_table"]:
+                assert(key in call_dict["challenge_info"])
+
+
+@pytest.mark.asyncio
+async def test_set_attempt(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    await add_score(server)
+    client.reset_mock()
+    data = {ARENA: {"setting": {"attempt": 2}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    client.check_data(["metadata", "current_scores"])
+    client.check_score(score_value=0)
+
+
+@pytest.mark.asyncio
+async def test_set_attempt_str(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    await add_score(server)
+    client.reset_mock()
+    data = {ARENA: {"setting": {"attempt": "2"}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    client.check_data(["metadata", "current_scores"])
+    client.check_score(score_value=0)
+
+
+@pytest.mark.asyncio
+async def test_set_attempt_twice(tmpdir):
+    server, client = await setup_default_server_and_client(tmpdir)
+    await add_score(server, SCORE_KEY, SCORE_VALUE)
+    data = {ARENA: {"setting": {"attempt": "2"}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    await add_score(server, SCORE_KEY+1, SCORE_VALUE)
+    client.reset_mock()
+    data = {ARENA: {"setting": {"attempt": "1"}}}
+    # noinspection PyProtectedMember
+    await server._process_message(json.dumps(data))
+    print(f"Server state: {server._score_register._cache}")
+    client.check_data(["metadata", "current_scores"])
+    client.check_score()
 
 
 @pytest.mark.asyncio
 async def test_score(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.reset_mock()
-    data = {"score": {SCORE_KEY: SCORE_VALUE}}
-    # noinspection PyProtectedMember
-    await server._on_score(ARENA, data)
+    await add_score(server)
     assert(any(["current_scores" in item for item in client.get_arena_arg_list()]))
-    for arena_data in client.get_arena_arg_list():
-        if "current_scores" in arena_data:
-            scores = {int(key): value for key, value in arena_data["current_scores"].items()}
-            assert scores[SCORE_KEY] == SCORE_VALUE
-
-
-
-
-
-
-# @pytest.mark.asyncio
-# async def test_set_challenge():
+    client.check_score()

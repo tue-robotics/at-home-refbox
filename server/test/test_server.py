@@ -1,5 +1,6 @@
 import json
 import mock
+import os
 import pytest
 
 # At Home Refbox
@@ -10,14 +11,17 @@ path = pathlib.Path(__file__).parent.absolute().parent
 path = path.joinpath("src", "server")
 sys.path.insert(1, str(path))
 from server import Server
+from server_types import ServerConfig
 
 EVENT = "RoboCup 2021"
 TEAM = "Tech United Eindhoven"
 CHALLENGE = "Restaurant"
 ATTEMPT = 1
 ARENA = "A"
+NR_ARENAS = 2
 SCORE_KEY = 223
 SCORE_VALUE = 100
+INFO_DIR = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
 
 
 async def setup_default_server_and_client(server_path):
@@ -30,7 +34,8 @@ async def setup_default_server_and_client(server_path):
 
 # noinspection PyProtectedMember
 def _setup_default_server(server_path):
-    server = Server(server_path, EVENT)
+    config = ServerConfig(EVENT, INFO_DIR, server_path, NR_ARENAS)
+    server = Server(config)
     server._arenastates.set_team(ARENA, TEAM)
     server._arenastates.set_challenge(ARENA, CHALLENGE)
     server._arenastates.set_attempt(ARENA, ATTEMPT)
@@ -100,7 +105,8 @@ async def test_registration(tmpdir):
 
 @pytest.mark.asyncio
 async def test_registration_empty(tmpdir):
-    server = Server(tmpdir, EVENT)
+    config = ServerConfig(EVENT, INFO_DIR, tmpdir, NR_ARENAS)
+    server = Server(config)
     client = MockSocket()
     # noinspection PyProtectedMember
     await server._register(client)

@@ -17,8 +17,9 @@ import websockets
 
 # Server
 from arenastates import ArenaStates
+from competition_info import CompetitionInfo
 from score_register import ScoreRegister
-from server_types import ReceiveKeys, SendKeys, SettingKeys
+from server_types import ServerConfig, ReceiveKeys, SendKeys, SettingKeys
 
 logging.basicConfig()
 
@@ -77,10 +78,11 @@ standings = [
 
 
 class Server(object):
-    def __init__(self, path: str, event: str, nr_arenas: int=2):
-        self._arenas = [chr(65 + i) for i in range(nr_arenas)]  # "A", "B", etc.
-        self._arenastates = ArenaStates(event)
-        self._score_register = self._create_score_register(path, event)
+    def __init__(self, config: ServerConfig):
+        self._arenas = [chr(65 + i) for i in range(config.nr_arenas)]  # "A", "B", etc.
+        self._competition_info = CompetitionInfo(config.info_dir, config.event)
+        self._arenastates = ArenaStates(config.event)
+        self._score_register = self._create_score_register(config.db_dir, config.event)
         self._clients = set()
 
     @staticmethod
@@ -107,7 +109,12 @@ class Server(object):
         data = {}
         for arena in self._arenas:
             data.update(self._get_data(arena, [
-                SendKeys.EVENT, SendKeys.METADATA, SendKeys.CHALLENGE_INFO, SendKeys.STANDINGS, SendKeys.CURRENT_SCORES,
+                SendKeys.EVENT,
+                SendKeys.TEAMS,
+                SendKeys.METADATA,
+                SendKeys.CHALLENGE_INFO,
+                SendKeys.STANDINGS,
+                SendKeys.CURRENT_SCORES,
             ]))
         return data
 
@@ -129,7 +136,6 @@ class Server(object):
             await self._on_score(arena, arena_data[ReceiveKeys.SCORE])
         else:
             logging.error("unsupported event: {}", arena_data)
-
 
     async def _on_setting(self, arena: str, setting: dict):
         if SettingKeys.TEAM in setting:
@@ -164,6 +170,7 @@ class Server(object):
         score = self._score_register.get_score(metadata, score_table)
         data = {
             SendKeys.EVENT: self._arenastates.event,
+            SendKeys.TEAMS: self._competition_info.list_teams(),
             SendKeys.METADATA: metadata.to_dict(),
             SendKeys.CHALLENGE_INFO: challenge_info,
             SendKeys.CURRENT_SCORES: score,
@@ -197,10 +204,17 @@ def select_defaults_in_server(server):
     server._arenastates.set_challenge("A", "Cocktail party")
     server._arenastates.set_attempt("A", 1)
 
+
 if __name__ == "__main__":
     print("Creating server")
-    data_path = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
-    server = Server(data_path, "RoboCup 2021")
+    import pathlib
+    info_dir = os.path.join(
+        pathlib.Path(__file__).parent.absolute().parent.parent,
+        "test", "data"
+    )
+    db_dir = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
+    config = ServerConfig("RoboCup 2021", info_dir, db_dir, 2)
+    server = Server(config)
     select_defaults_in_server(server)
     start_server = websockets.serve(server.serve, "localhost", 6789)
 

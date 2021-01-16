@@ -89,7 +89,13 @@ async def add_score(server, score_key=SCORE_KEY, score_value=SCORE_VALUE):
 @pytest.mark.asyncio
 async def test_registration(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
-    client.check_data(["event", "metadata", "challenge_info", "standings"])
+    client.check_data([
+        "event",
+        "teams",
+        "metadata",
+        "challenge_info",
+        "standings",
+    ])
 
 
 @pytest.mark.asyncio

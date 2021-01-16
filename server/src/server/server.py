@@ -16,7 +16,7 @@ import typing
 import websockets
 
 # Server
-from arenastates import ArenaStates
+from arena_states import ArenaStates
 from competition_info import CompetitionInfo
 from score_register import ScoreRegister
 from server_types import ServerConfig, ReceiveKeys, SendKeys, SettingKeys

@@ -5,7 +5,7 @@ import sys
 path = pathlib.Path(__file__).parent.absolute().parent
 path = path.joinpath("src", "server")
 sys.path.insert(1, str(path))
-from arenastates import ArenaStates
+from arena_states import ArenaStates
 from server_types import MetaData
 
 EVENT = "RoboCup 2021"

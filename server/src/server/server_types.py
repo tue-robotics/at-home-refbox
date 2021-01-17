@@ -65,3 +65,10 @@ class SettingKeys(object):
     TEAM = "team"
     CHALLENGE = "challenge"
     ATTEMPT = "attempt"
+
+
+class ChallengeInfoKeys(object):
+    KEY = "key"
+    NAME = "name"
+    DESCRIPTION = "description"
+    SCORE_TABLE = "score_table"

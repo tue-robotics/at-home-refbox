@@ -1,0 +1,7 @@
+description:  "Enter the arena, take the orders of the three guests trying to yet your attention, serve the drinks and exit the arena"
+score_table:
+- {description: 'Enter arena', scoreIncrement: 100, maxScore: 100}
+- {description: 'Pick up drink', scoreIncrement: 100, maxScore: 300}
+- {description: 'Deliver drink', scoreIncrement: 100, maxScore: 300}
+- {description: 'Correct person', scoreIncrement: 100, maxScore: 300}
+- {description: 'Exit arena', scoreIncrement: 100, maxScore: 100}

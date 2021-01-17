@@ -19,7 +19,7 @@ import websockets
 from arena_states import ArenaStates
 from competition_info import CompetitionInfo
 from score_register import ScoreRegister
-from server_types import ServerConfig, ReceiveKeys, SendKeys, SettingKeys
+from server_types import ServerConfig, ReceiveKeys, SendKeys, SettingKeys, ChallengeInfoKeys
 
 logging.basicConfig()
 
@@ -55,7 +55,7 @@ def get_challenge_info_dict(challenge: str) -> dict:
     if challenge:
         return [info_dict for info_dict in CHALLENGE_INFO if info_dict["name"] == challenge][0] if challenge else {}
     else:
-        return {"name": {}, "description": "", "score_table": []}
+        return {ChallengeInfoKeys.NAME: {}, ChallengeInfoKeys.DESCRIPTION: "", ChallengeInfoKeys.SCORE_TABLE: []}
 
 
 standings = [

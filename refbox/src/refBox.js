@@ -64,19 +64,6 @@ class ScoreTable extends React.Component {
 }
 
 
-const AVAILABLE_TEAMS = [
-  'Tech United Eindhoven',
-  'Hibikino Musashi',
-  'er@sers',
-]
-
-
-const AVAILABLE_CHALLENGES = [
-  'Cocktail Party',
-  'Restaurant',
-]
-
-
 const AVAILABLE_ATTEMPTS = [
   '1',
   '2',
@@ -151,13 +138,13 @@ class MetaDataSelector extends React.Component {
       <Container className='p-3 mt-2 bg-primary text-white'>
         <SettingSelector
           setting='challenge'
-          options={AVAILABLE_CHALLENGES}
+          options={this.props.availableChallenges}
           current={this.props.challenge}
           onSelect={this.props.onSelect}
         />
         <SettingSelector
           setting='team'
-          options={AVAILABLE_TEAMS}
+          options={this.props.availableTeams}
           current={this.props.team}
           onSelect={this.props.onSelect}
         />
@@ -181,7 +168,9 @@ class RefBox extends React.Component {
     this.state = {
       arena: arena,
       event: '',
+      availableChallenges: [],
       challenge: '',
+      availableTeams: [],
       team: '',
       attempt: '',
       challengeDescription: '',
@@ -204,6 +193,12 @@ class RefBox extends React.Component {
     if ('event' in data) {
       this.updateStaticData(data);
     }
+    if ('challenges' in data) {
+      this.updateAvailableChallenges(data.challenges)
+    }
+    if ('teams' in data) {
+      this.updateAvailableTeams(data.teams)
+    }
     if ('metadata' in data) {
       this.updateMetaData(data.metadata);
     }
@@ -221,6 +216,18 @@ class RefBox extends React.Component {
     this.setState({
       event: data.event,
     });
+  }
+
+  updateAvailableChallenges(challenges) {
+    this.setState({
+      availableChallenges: challenges
+    })
+  }
+
+  updateAvailableTeams(teams) {
+    this.setState({
+      availableTeams: teams
+    })
   }
 
   updateMetaData(metadata) {
@@ -284,7 +291,9 @@ class RefBox extends React.Component {
           <div>{arenaDescription}</div>
         </Container>
         <MetaDataSelector
+          availableChallenges={this.state.availableChallenges}
           challenge={this.state.challenge}
+          availableTeams={this.state.availableTeams}
           team={this.state.team}
           attempt={this.state.attempt}
           onSelect={this.sendSetting}

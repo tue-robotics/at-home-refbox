@@ -79,6 +79,7 @@ def _add_keys_to_score_table(challenge, score_table):
 def _get_score_key(challenge, item):
     description = item[ChallengeInfoKeys.DESCRIPTION]
     long_hash = hash(challenge + " - " + description)
+    # A 'short' hash of 10 digits is used to prevent client-side integer rounding errors
     short_hash = int(str(long_hash)[:10])
     return short_hash
 

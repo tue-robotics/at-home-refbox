@@ -78,7 +78,9 @@ def _add_keys_to_score_table(challenge, score_table):
 
 def _get_score_key(challenge, item):
     description = item[ChallengeInfoKeys.DESCRIPTION]
-    return hash(challenge + " - " + description)
+    long_hash = hash(challenge + " - " + description)
+    short_hash = int(str(long_hash)[:10])
+    return short_hash
 
 
 

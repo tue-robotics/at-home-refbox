@@ -49,6 +49,12 @@ def test_get_challenge_info():
         check_challenge_info(challenge_info)
 
 
+def test_get_challenge_info_empty():
+    info = create_challenge_info()
+    challenge_info = info.get_challenge_info("foo")
+    check_challenge_info(challenge_info)
+
+
 def check_challenge_info(challenge_info):
     assert "name" in challenge_info
     assert "description" in challenge_info

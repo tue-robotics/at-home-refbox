@@ -24,40 +24,6 @@ from server_types import ServerConfig, ReceiveKeys, SendKeys, SettingKeys, Chall
 logging.basicConfig()
 
 
-CHALLENGE_INFO = [
-    {
-        "name": "Cocktail party",
-        "description": "Enter the arena, take the orders of the three guests trying to yet your attention, "
-                       "serve the drinks and exit the arena",
-        "score_table": [
-                {"key": 123, "description": 'Enter arena', "scoreIncrement": 100, "maxScore": 100},
-                {"key": 124, "description": 'Pick up drink', "scoreIncrement": 100, "maxScore": 300},
-                {"key": 125, "description": 'Deliver drink', "scoreIncrement": 100, "maxScore": 300},
-                {"key": 126, "description": 'Correct person', "scoreIncrement": 100, "maxScore": 300},
-                {"key": 127, "description": 'Exit arena', "scoreIncrement": 100, "maxScore": 100},
-        ],
-    },
-    {
-        "name": "Restaurant",
-        "description": "Find the customers trying to get their attention and ask what they would like. "
-                       "Retrieve the orders from the bar and serve them to the customers",
-        "score_table": [
-            {"key": 223, "description": 'Detect bar', "scoreIncrement": 100, "maxScore": 100},
-            {"key": 224, "description": 'Find waving person', "scoreIncrement": 200, "maxScore": 600},
-            {"key": 225, "description": 'Understand order', "scoreIncrement": 100, "maxScore": 300},
-            {"key": 226, "description": 'Deliver order', "scoreIncrement": 200, "maxScore": 600},
-        ],
-    },
-]
-
-
-def get_challenge_info_dict(challenge: str) -> dict:
-    if challenge:
-        return [info_dict for info_dict in CHALLENGE_INFO if info_dict["name"] == challenge][0] if challenge else {}
-    else:
-        return {ChallengeInfoKeys.NAME: {}, ChallengeInfoKeys.DESCRIPTION: "", ChallengeInfoKeys.SCORE_TABLE: []}
-
-
 standings = [
   {
     "team": "Tech United Eindhoven",
@@ -166,7 +132,7 @@ class Server(object):
 
     def _get_data(self, arena: str, requested_keys: typing.List[str]) -> dict:
         metadata = self._arenastates.get_metadata(arena)
-        challenge_info = get_challenge_info_dict(metadata.challenge)
+        challenge_info = self._competition_info.get_challenge_info(metadata.challenge)
         data = {}
         if SendKeys.EVENT in requested_keys:
             data[SendKeys.EVENT] = self._competition_info.event

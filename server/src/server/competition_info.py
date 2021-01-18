@@ -25,7 +25,14 @@ class CompetitionInfo(object):
         return list(self._challenges)
 
     def get_challenge_info(self, challenge: str) -> dict:
-        return copy.deepcopy(self._challenge_infos[challenge])
+        if challenge in self._challenge_infos:
+            return copy.deepcopy(self._challenge_infos[challenge])
+        else:
+            return {
+                ChallengeInfoKeys.NAME: "",
+                ChallengeInfoKeys.DESCRIPTION: "",
+                ChallengeInfoKeys.SCORE_TABLE: []
+            }
 
 
 def load_teams(event_dir: str) -> typing.List[str]:
@@ -65,7 +72,7 @@ def _extend_info(challenge: str, raw_info: dict) -> dict:
 
 def _add_keys_to_score_table(challenge, score_table):
     for item in score_table:
-        item[ChallengeInfoKeys.KEY] = _get_score_key(challenge, item)
+        item[ChallengeInfoKeys.SCORE_KEY] = _get_score_key(challenge, item)
     return score_table
 
 

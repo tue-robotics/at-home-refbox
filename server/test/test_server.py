@@ -102,8 +102,8 @@ async def test_registration(tmpdir):
     server, client = await setup_default_server_and_client(tmpdir)
     client.check_data([
         "event",
-        "teams",
-        "challenges",
+        "availableTeams",
+        "availableChallenges",
         "metadata",
         "challenge_info",
         "standings",
@@ -117,7 +117,14 @@ async def test_registration_empty(tmpdir):
     client = MockSocket()
     # noinspection PyProtectedMember
     await server._register(client)
-    client.check_data(["event", "metadata",  "challenge_info", "standings"])
+    client.check_data([
+        "event",
+        "availableTeams",
+        "availableChallenges",
+        "metadata",
+        "challenge_info",
+        "standings"
+    ])
 
 
 @pytest.mark.asyncio

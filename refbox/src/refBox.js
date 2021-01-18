@@ -193,11 +193,11 @@ class RefBox extends React.Component {
     if ('event' in data) {
       this.updateStaticData(data);
     }
-    if ('challenges' in data) {
-      this.updateAvailableChallenges(data.challenges)
+    if ('availableChallenges' in data) {
+      this.updateAvailableChallenges(data.availableChallenges)
     }
-    if ('teams' in data) {
-      this.updateAvailableTeams(data.teams)
+    if ('availableTeams' in data) {
+      this.updateAvailableTeams(data.availableTeams)
     }
     if ('metadata' in data) {
       this.updateMetaData(data.metadata);

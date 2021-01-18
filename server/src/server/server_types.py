@@ -48,8 +48,8 @@ class MetaData(object):
 
 class SendKeys(object):
     EVENT = "event"
-    TEAMS = "teams"
-    CHALLENGES = "challenges"
+    TEAMS = "availableTeams"
+    CHALLENGES = "availableChallenges"
     METADATA = "metadata"
     CHALLENGE_INFO = "challenge_info"
     CURRENT_SCORES = "current_scores"

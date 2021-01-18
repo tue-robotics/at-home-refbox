@@ -87,9 +87,28 @@ class SettingSelector extends React.Component {
   render() {
     if (this.state.configuring) {
       return this.renderOptions();
+    } else if (this.props.current.length === 0) {
+      return this.renderNoSelection();
     } else {
       return this.renderCurrent();
     }
+  }
+
+  renderNoSelection() {
+    // const description = this.props.prefix ? this.props.prefix + this.props.current : this.props.current;
+    // const pending = this.state.current && this.props.current !== this.state.current;
+    const description = 'Please select a ' + this.props.setting;
+    const noOptions = this.props.options.length === 0 ? true : false;
+    console.log('noOptions: ', noOptions);
+    return (
+      <Button
+        variant='warning'
+        block onClick={() => this.setState({configuring: true})}
+        disabled={noOptions}
+      >
+        {description}
+      </Button>
+    );
   }
 
   renderOptions() {
@@ -116,8 +135,6 @@ class SettingSelector extends React.Component {
   renderCurrent() {
     const description = this.props.prefix ? this.props.prefix + this.props.current : this.props.current;
     const pending = this.state.current && this.props.current !== this.state.current;
-    // console.log(this.props.setting, this.props.current, this.state.current, 'pending: ', pending);
-    // console.log(this.state);
     return (
       <Button
         variant='secondary'

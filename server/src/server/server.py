@@ -175,7 +175,7 @@ class Server(object):
 def select_defaults_in_server(server):
     # Set some default values for easy testing
     server._arenastates.set_team("A", "Tech United Eindhoven")
-    server._arenastates.set_challenge("A", "Cocktail party")
+    server._arenastates.set_challenge("A", "Cocktail Party")
     server._arenastates.set_attempt("A", 1)
 
 

@@ -72,7 +72,7 @@ const AVAILABLE_TEAMS = [
 
 
 const AVAILABLE_CHALLENGES = [
-  'Cocktail party',
+  'Cocktail Party',
   'Restaurant',
 ]
 

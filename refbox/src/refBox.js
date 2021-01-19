@@ -90,8 +90,6 @@ class SettingSelector extends React.Component {
   }
 
   renderNoSelection() {
-    // const description = this.props.prefix ? this.props.prefix + this.props.current : this.props.current;
-    // const pending = this.state.current && this.props.current !== this.state.current;
     const description = 'Please select ' + this.props.setting;
     const noOptions = this.props.options.length === 0 ? true : false;
     return (

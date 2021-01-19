@@ -9,6 +9,7 @@
 # WS server example that synchronizes state across clients
 
 import asyncio
+import copy
 import json
 import logging
 import os
@@ -19,7 +20,7 @@ import websockets
 from arena_states import ArenaStates
 from competition_info import CompetitionInfo
 from score_register import ScoreRegister
-from server_types import ServerConfig, ReceiveKeys, SendKeys, SettingKeys, ChallengeInfoKeys
+from server_types import MetaData, ServerConfig, ReceiveKeys, SendKeys, SettingKeys, ChallengeInfoKeys
 
 logging.basicConfig()
 
@@ -132,7 +133,6 @@ class Server(object):
 
     def _get_data(self, arena: str, requested_keys: typing.List[str]) -> dict:
         metadata = self._arenastates.get_metadata(arena)
-        challenge_info = self._competition_info.get_challenge_info(metadata.challenge)
         data = {}
         if SendKeys.EVENT in requested_keys:
             data[SendKeys.EVENT] = self._competition_info.event
@@ -142,15 +142,26 @@ class Server(object):
             data[SendKeys.CHALLENGES] = self._competition_info.list_challenges()
         if SendKeys.METADATA in requested_keys:
             data[SendKeys.METADATA] = metadata.to_dict()
+        if SendKeys.STANDINGS in requested_keys:
+            data[SendKeys.STANDINGS] = standings
+        data = self._add_challenge_info(data, requested_keys, metadata)
+        return {arena: data}
+
+    def _add_challenge_info(self, data: dict, requested_keys: typing.List[str], metadata: MetaData):
+        try:
+            return self._try_add_challenge_info(copy.deepcopy(data), requested_keys, metadata)
+        except KeyError:
+            return data
+
+    def _try_add_challenge_info(self, data: dict, requested_keys: typing.List[str], metadata: MetaData):
+        challenge_info = self._competition_info.get_challenge_info(metadata.challenge)
         if SendKeys.CHALLENGE_INFO in requested_keys:
             data[SendKeys.CHALLENGE_INFO] = challenge_info
         if SendKeys.CURRENT_SCORES in requested_keys:
             score_table = challenge_info["score_table"]
             score = self._score_register.get_score(metadata, score_table)
             data[SendKeys.CURRENT_SCORES] = score
-        if SendKeys.STANDINGS in requested_keys:
-            data[SendKeys.STANDINGS] = standings
-        return {arena: data}
+        return data
 
     async def _on_score(self, arena: str, score: typing.Dict[int, int]):
         metadata = self._arenastates.get_metadata(arena)  # type: dict

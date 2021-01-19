@@ -26,15 +26,7 @@ class CompetitionInfo(object):
         return list(self._challenges)
 
     def get_challenge_info(self, challenge: str) -> dict:
-        if challenge in self._challenge_infos:
-            return copy.deepcopy(self._challenge_infos[challenge])
-        else:
-            return {
-                ChallengeInfoKeys.NAME: "",
-                ChallengeInfoKeys.DESCRIPTION: "",
-                ChallengeInfoKeys.SCORE_TABLE: [],
-                ChallengeInfoKeys.AVAILABLE_ATTEMPTS: [],
-            }
+        return copy.deepcopy(self._challenge_infos[challenge])
 
 
 def load_teams(event_dir: str) -> typing.List[str]:

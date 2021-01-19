@@ -51,8 +51,8 @@ def test_get_challenge_info():
 
 def test_get_challenge_info_empty():
     info = create_challenge_info()
-    challenge_info = info.get_challenge_info("foo")
-    check_challenge_info(challenge_info)
+    with pytest.raises(KeyError):
+        info.get_challenge_info("foo")
 
 
 def check_challenge_info(challenge_info):

@@ -122,7 +122,6 @@ async def test_registration_empty(tmpdir):
         "availableTeams",
         "availableChallenges",
         "metadata",
-        "challenge_info",
         "standings"
     ])
 

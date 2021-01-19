@@ -189,7 +189,7 @@ if __name__ == "__main__":
     db_dir = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
     config = ServerConfig("RoboCup 2021", info_dir, db_dir, 2)
     server = Server(config)
-    select_defaults_in_server(server)
+    # select_defaults_in_server(server)
     start_server = websockets.serve(server.serve, "localhost", 6789)
 
     print("Starting")

@@ -70,6 +70,8 @@ class SettingKeys(object):
 class ChallengeInfoKeys(object):
     NAME = "name"
     DESCRIPTION = "description"
+    AVAILABLE_ATTEMPTS = "availableAttempts"
+    NR_ATTEMPTS = "nr_attempts"
     SCORE_TABLE = "score_table"
     SCORE_KEY = "key"
     SCORE_INCREMENT = "scoreIncrement"

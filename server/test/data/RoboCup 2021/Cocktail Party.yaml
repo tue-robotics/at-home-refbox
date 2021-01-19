@@ -1,4 +1,5 @@
 description:  "Enter the arena, take the orders of the three guests trying to yet your attention, serve the drinks and exit the arena"
+nr_attempts: 2
 score_table:
 - {description: 'Enter arena', scoreIncrement: 100, maxScore: 100}
 - {description: 'Pick up drink', scoreIncrement: 100, maxScore: 300}

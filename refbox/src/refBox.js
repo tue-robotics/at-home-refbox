@@ -64,12 +64,6 @@ class ScoreTable extends React.Component {
 }
 
 
-const AVAILABLE_ATTEMPTS = [
-  '1',
-  '2',
-]
-
-
 class SettingSelector extends React.Component {
   constructor(props) {
     super(props);
@@ -97,7 +91,7 @@ class SettingSelector extends React.Component {
   renderNoSelection() {
     // const description = this.props.prefix ? this.props.prefix + this.props.current : this.props.current;
     // const pending = this.state.current && this.props.current !== this.state.current;
-    const description = 'Please select a ' + this.props.setting;
+    const description = 'Please select ' + this.props.setting;
     const noOptions = this.props.options.length === 0 ? true : false;
     return (
       <Button
@@ -166,7 +160,7 @@ class MetaDataSelector extends React.Component {
         />
         <SettingSelector
           setting='attempt'
-          options={AVAILABLE_ATTEMPTS}
+          options={this.props.availableAttempts}
           current={this.props.attempt}
           prefix='Attempt: '
           onSelect={this.props.onSelect}
@@ -188,6 +182,7 @@ class RefBox extends React.Component {
       challenge: '',
       availableTeams: [],
       team: '',
+      availableAttempts: [],
       attempt: '',
       challengeDescription: '',
       scoreTable: [],
@@ -257,6 +252,7 @@ class RefBox extends React.Component {
   updateChallengeInfo(data) {
     this.setState({
       challengeDescription: data.description,
+      availableAttempts: data.availableAttempts,
       scoreTable: data.score_table,
     })
   }
@@ -311,6 +307,7 @@ class RefBox extends React.Component {
           challenge={this.state.challenge}
           availableTeams={this.state.availableTeams}
           team={this.state.team}
+          availableAttempts={this.state.availableAttempts}
           attempt={this.state.attempt}
           onSelect={this.sendSetting}
         />

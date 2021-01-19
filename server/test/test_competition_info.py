@@ -58,6 +58,7 @@ def test_get_challenge_info_empty():
 def check_challenge_info(challenge_info):
     assert "name" in challenge_info
     assert "description" in challenge_info
+    assert "availableAttempts" in challenge_info
     assert "score_table" in challenge_info
     check_score_table(challenge_info["score_table"])
 

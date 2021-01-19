@@ -47,7 +47,7 @@ class Server(object):
     def __init__(self, config: ServerConfig):
         self._arenas = [chr(65 + i) for i in range(config.nr_arenas)]  # "A", "B", etc.
         self._competition_info = CompetitionInfo(config.info_dir, config.event)
-        self._arenastates = ArenaStates(config.event)
+        self._arenastates = ArenaStates(self._arenas)
         self._score_register = self._create_score_register(config.db_dir, config.event)
         self._clients = set()
 

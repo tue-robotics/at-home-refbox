@@ -15,7 +15,7 @@ ATTEMPT = 1
 ARENA = "A"
 
 def test_setup():
-    arenastates = ArenaStates("RoboCup 2021")
+    arenastates = ArenaStates([ARENA])
     arenastates.set_team(ARENA, TEAM)
     arenastates.set_challenge(ARENA, CHALLENGE)
     arenastates.set_attempt(ARENA, ATTEMPT)
@@ -23,7 +23,7 @@ def test_setup():
 
 
 def test_dict():
-    arenastates = ArenaStates("RoboCup 2021")
+    arenastates = ArenaStates([ARENA])
     arenastates.set_team(ARENA, TEAM)
     arenastates.set_challenge(ARENA, CHALLENGE)
     arenastates.set_attempt(ARENA, ATTEMPT)

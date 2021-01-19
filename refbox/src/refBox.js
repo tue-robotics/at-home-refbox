@@ -19,8 +19,8 @@ class Action extends React.Component {
     let decrementDescription = "-"
     let incrementDescription = "+"
     let scoreDescription = String(currentScore) + '/' + String(this.props.maxScore)
-    let canIncrement = currentScore < this.props.maxScore;
-    let canDecrement = currentScore > 0;
+    let canIncrement = this.props.enabled && currentScore < this.props.maxScore;
+    let canDecrement = this.props.enabled && currentScore > 0;
     // ToDo: replace buttons by bootstrap buttons
     return (
       <tr className='text-white'>
@@ -48,6 +48,7 @@ class ScoreTable extends React.Component {
       currentScore={scoreValue}
       maxScore={action.maxScore}
       onScore={this.props.onScore}
+      enabled={this.props.enabled}
     />
     );
   });
@@ -289,9 +290,18 @@ class RefBox extends React.Component {
     }
   }
 
+  canScore() {
+    var canScore = true;
+    canScore = canScore && this.state.availableChallenges.includes(this.state.challenge);
+    canScore = canScore && this.state.availableTeams.includes(this.state.team);
+    canScore = canScore && this.state.availableAttempts.includes(this.state.attempt);
+    return canScore;
+  }
+
   render()
   {
     const arenaDescription = 'Arena: ' + this.state.arena;
+    const canScore = this.canScore();
     return (
       <div>
         <Websocket url='ws://localhost:6789' onMessage={this.onMessage} reconnect={true}
@@ -315,6 +325,7 @@ class RefBox extends React.Component {
           scoreTable={this.state.scoreTable}
           onScore={this.sendScore}
           currentScore={this.state.currentScore}
+          enabled={canScore}
         />
       </div>
       );

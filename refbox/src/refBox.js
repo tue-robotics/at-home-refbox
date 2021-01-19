@@ -87,7 +87,7 @@ class SettingSelector extends React.Component {
   render() {
     if (this.state.configuring) {
       return this.renderOptions();
-    } else if (this.props.current.length === 0) {
+    } else if (this.props.current.length === 0 || !this.props.options.includes(this.props.current)) {
       return this.renderNoSelection();
     } else {
       return this.renderCurrent();
@@ -99,7 +99,6 @@ class SettingSelector extends React.Component {
     // const pending = this.state.current && this.props.current !== this.state.current;
     const description = 'Please select a ' + this.props.setting;
     const noOptions = this.props.options.length === 0 ? true : false;
-    console.log('noOptions: ', noOptions);
     return (
       <Button
         variant='warning'

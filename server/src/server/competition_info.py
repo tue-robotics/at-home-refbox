@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import os
 import typing
 import yaml
@@ -78,13 +79,9 @@ def _add_keys_to_score_table(challenge, score_table):
 
 def _get_score_key(challenge, item):
     description = item[ChallengeInfoKeys.DESCRIPTION]
-    long_hash = hash(challenge + " - " + description)
+    id_str = challenge + " - " + description
+    long_hash = int(hashlib.sha256(id_str.encode("utf-8")).hexdigest(), 16)
     # A 'short' hash of 10 digits is used to prevent client-side integer rounding errors
-    short_hash = int(str(long_hash)[:10])
+    short_hash = long_hash % 10**10
     return short_hash
-
-
-
-
-
 

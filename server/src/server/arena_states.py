@@ -1,17 +1,16 @@
 import copy
 from server_types import MetaData
 
-class Competition(object):
-    def __init__(self, event):
-        self._event = event
-        self._metadatas = {
-            "A": {"team": "", "challenge": "", "attempt": 0},
-            "B": {"team": "", "challenge": "", "attempt": 0},
-        }
+class ArenaStates(object):
+    def __init__(self, arenas):
+        self._metadatas = self._get_empty_metadata(arenas)
 
-    @property
-    def event(self):
-        return self._event
+    @staticmethod
+    def _get_empty_metadata(arenas):
+        result = {}
+        for arena in arenas:
+            result[arena] = {"team": "", "challenge": "", "attempt": 0}
+        return result
 
     def set_team(self, arena, team):
         self._metadatas[arena].update({"team": team})

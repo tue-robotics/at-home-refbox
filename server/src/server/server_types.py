@@ -1,4 +1,11 @@
+import collections
 import json
+
+
+ServerConfig = collections.namedtuple("ServerConfig", [
+    "event", "info_dir", "db_dir", "nr_arenas"
+])
+
 
 class MetaData(object):
     def __init__(self, team, challenge, attempt):
@@ -41,6 +48,8 @@ class MetaData(object):
 
 class SendKeys(object):
     EVENT = "event"
+    TEAMS = "availableTeams"
+    CHALLENGES = "availableChallenges"
     METADATA = "metadata"
     CHALLENGE_INFO = "challenge_info"
     CURRENT_SCORES = "current_scores"
@@ -56,3 +65,14 @@ class SettingKeys(object):
     TEAM = "team"
     CHALLENGE = "challenge"
     ATTEMPT = "attempt"
+
+
+class ChallengeInfoKeys(object):
+    NAME = "name"
+    DESCRIPTION = "description"
+    AVAILABLE_ATTEMPTS = "availableAttempts"
+    NR_ATTEMPTS = "nr_attempts"
+    SCORE_TABLE = "score_table"
+    SCORE_KEY = "key"
+    SCORE_INCREMENT = "scoreIncrement"
+    MAX_SCORE = "maxScore"

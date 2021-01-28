@@ -19,8 +19,8 @@ class Action extends React.Component {
     let decrementDescription = "-"
     let incrementDescription = "+"
     let scoreDescription = String(currentScore) + '/' + String(this.props.maxScore)
-    let canIncrement = currentScore < this.props.maxScore;
-    let canDecrement = currentScore > 0;
+    let canIncrement = this.props.enabled && currentScore < this.props.maxScore;
+    let canDecrement = this.props.enabled && currentScore > 0;
     // ToDo: replace buttons by bootstrap buttons
     return (
       <tr className='text-white'>
@@ -48,6 +48,7 @@ class ScoreTable extends React.Component {
       currentScore={scoreValue}
       maxScore={action.maxScore}
       onScore={this.props.onScore}
+      enabled={this.props.enabled}
     />
     );
   });
@@ -62,25 +63,6 @@ class ScoreTable extends React.Component {
   );
   }
 }
-
-
-const AVAILABLE_TEAMS = [
-  'Tech United Eindhoven',
-  'Hibikino Musashi',
-  'er@sers',
-]
-
-
-const AVAILABLE_CHALLENGES = [
-  'Cocktail party',
-  'Restaurant',
-]
-
-
-const AVAILABLE_ATTEMPTS = [
-  '1',
-  '2',
-]
 
 
 class SettingSelector extends React.Component {
@@ -100,9 +82,25 @@ class SettingSelector extends React.Component {
   render() {
     if (this.state.configuring) {
       return this.renderOptions();
+    } else if (this.props.current.length === 0 || !this.props.options.includes(this.props.current)) {
+      return this.renderNoSelection();
     } else {
       return this.renderCurrent();
     }
+  }
+
+  renderNoSelection() {
+    const description = 'Please select ' + this.props.setting;
+    const noOptions = this.props.options.length === 0 ? true : false;
+    return (
+      <Button
+        variant='warning'
+        block onClick={() => this.setState({configuring: true})}
+        disabled={noOptions}
+      >
+        {description}
+      </Button>
+    );
   }
 
   renderOptions() {
@@ -129,8 +127,6 @@ class SettingSelector extends React.Component {
   renderCurrent() {
     const description = this.props.prefix ? this.props.prefix + this.props.current : this.props.current;
     const pending = this.state.current && this.props.current !== this.state.current;
-    // console.log(this.props.setting, this.props.current, this.state.current, 'pending: ', pending);
-    // console.log(this.state);
     return (
       <Button
         variant='secondary'
@@ -151,19 +147,19 @@ class MetaDataSelector extends React.Component {
       <Container className='p-3 mt-2 bg-primary text-white'>
         <SettingSelector
           setting='challenge'
-          options={AVAILABLE_CHALLENGES}
+          options={this.props.availableChallenges}
           current={this.props.challenge}
           onSelect={this.props.onSelect}
         />
         <SettingSelector
           setting='team'
-          options={AVAILABLE_TEAMS}
+          options={this.props.availableTeams}
           current={this.props.team}
           onSelect={this.props.onSelect}
         />
         <SettingSelector
           setting='attempt'
-          options={AVAILABLE_ATTEMPTS}
+          options={this.props.availableAttempts}
           current={this.props.attempt}
           prefix='Attempt: '
           onSelect={this.props.onSelect}
@@ -181,8 +177,11 @@ class RefBox extends React.Component {
     this.state = {
       arena: arena,
       event: '',
+      availableChallenges: [],
       challenge: '',
+      availableTeams: [],
       team: '',
+      availableAttempts: [],
       attempt: '',
       challengeDescription: '',
       scoreTable: [],
@@ -204,6 +203,12 @@ class RefBox extends React.Component {
     if ('event' in data) {
       this.updateStaticData(data);
     }
+    if ('availableChallenges' in data) {
+      this.updateAvailableChallenges(data.availableChallenges)
+    }
+    if ('availableTeams' in data) {
+      this.updateAvailableTeams(data.availableTeams)
+    }
     if ('metadata' in data) {
       this.updateMetaData(data.metadata);
     }
@@ -223,6 +228,18 @@ class RefBox extends React.Component {
     });
   }
 
+  updateAvailableChallenges(challenges) {
+    this.setState({
+      availableChallenges: challenges
+    })
+  }
+
+  updateAvailableTeams(teams) {
+    this.setState({
+      availableTeams: teams
+    })
+  }
+
   updateMetaData(metadata) {
     this.setState({
       challenge: metadata.challenge,
@@ -234,6 +251,7 @@ class RefBox extends React.Component {
   updateChallengeInfo(data) {
     this.setState({
       challengeDescription: data.description,
+      availableAttempts: data.availableAttempts,
       scoreTable: data.score_table,
     })
   }
@@ -270,9 +288,18 @@ class RefBox extends React.Component {
     }
   }
 
+  canScore() {
+    var canScore = true;
+    canScore = canScore && this.state.availableChallenges.includes(this.state.challenge);
+    canScore = canScore && this.state.availableTeams.includes(this.state.team);
+    canScore = canScore && this.state.availableAttempts.includes(this.state.attempt);
+    return canScore;
+  }
+
   render()
   {
     const arenaDescription = 'Arena: ' + this.state.arena;
+    const canScore = this.canScore();
     return (
       <div>
         <Websocket url='ws://localhost:6789' onMessage={this.onMessage} reconnect={true}
@@ -284,8 +311,11 @@ class RefBox extends React.Component {
           <div>{arenaDescription}</div>
         </Container>
         <MetaDataSelector
+          availableChallenges={this.state.availableChallenges}
           challenge={this.state.challenge}
+          availableTeams={this.state.availableTeams}
           team={this.state.team}
+          availableAttempts={this.state.availableAttempts}
           attempt={this.state.attempt}
           onSelect={this.sendSetting}
         />
@@ -293,6 +323,7 @@ class RefBox extends React.Component {
           scoreTable={this.state.scoreTable}
           onScore={this.sendScore}
           currentScore={this.state.currentScore}
+          enabled={canScore}
         />
       </div>
       );

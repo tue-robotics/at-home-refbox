@@ -1,0 +1,7 @@
+description: "Find the customers trying to get their attention and ask what they would like. Retrieve the orders from the bar and serve them to the customers"
+nr_attempts: 2
+score_table:
+- {description: 'Detect bar', scoreIncrement: 100, maxScore: 100}
+- {description: 'Find waving person', scoreIncrement: 200, maxScore: 600}
+- {description: 'Understand order', scoreIncrement: 100, maxScore: 300}
+- {description: 'Deliver order', scoreIncrement: 200, maxScore: 600}

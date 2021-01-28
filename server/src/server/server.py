@@ -16,45 +16,12 @@ import typing
 import websockets
 
 # Server
-from competition import Competition
+from arena_states import ArenaStates
+from competition_info import CompetitionInfo
 from score_register import ScoreRegister
-from server_types import ReceiveKeys, SendKeys, SettingKeys
+from server_types import ServerConfig, ReceiveKeys, SendKeys, SettingKeys, ChallengeInfoKeys
 
 logging.basicConfig()
-
-
-CHALLENGE_INFO = [
-    {
-        "name": "Cocktail party",
-        "description": "Enter the arena, take the orders of the three guests trying to yet your attention, "
-                       "serve the drinks and exit the arena",
-        "score_table": [
-                {"key": 123, "description": 'Enter arena', "scoreIncrement": 100, "maxScore": 100},
-                {"key": 124, "description": 'Pick up drink', "scoreIncrement": 100, "maxScore": 300},
-                {"key": 125, "description": 'Deliver drink', "scoreIncrement": 100, "maxScore": 300},
-                {"key": 126, "description": 'Correct person', "scoreIncrement": 100, "maxScore": 300},
-                {"key": 127, "description": 'Exit arena', "scoreIncrement": 100, "maxScore": 100},
-        ],
-    },
-    {
-        "name": "Restaurant",
-        "description": "Find the customers trying to get their attention and ask what they would like. "
-                       "Retrieve the orders from the bar and serve them to the customers",
-        "score_table": [
-            {"key": 223, "description": 'Detect bar', "scoreIncrement": 100, "maxScore": 100},
-            {"key": 224, "description": 'Find waving person', "scoreIncrement": 200, "maxScore": 600},
-            {"key": 225, "description": 'Understand order', "scoreIncrement": 100, "maxScore": 300},
-            {"key": 226, "description": 'Deliver order', "scoreIncrement": 200, "maxScore": 600},
-        ],
-    },
-]
-
-
-def get_challenge_info_dict(challenge: str) -> dict:
-    if challenge:
-        return [info_dict for info_dict in CHALLENGE_INFO if info_dict["name"] == challenge][0] if challenge else {}
-    else:
-        return {"name": {}, "description": "", "score_table": []}
 
 
 standings = [
@@ -77,10 +44,11 @@ standings = [
 
 
 class Server(object):
-    def __init__(self, path: str, event: str, nr_arenas: int=2):
-        self._arenas = [chr(65 + i) for i in range(nr_arenas)]  # "A", "B", etc.
-        self._competition = Competition(event)
-        self._score_register = self._create_score_register(path, event)
+    def __init__(self, config: ServerConfig):
+        self._arenas = [chr(65 + i) for i in range(config.nr_arenas)]  # "A", "B", etc.
+        self._competition_info = CompetitionInfo(config.info_dir, config.event)
+        self._arenastates = ArenaStates(self._arenas)
+        self._score_register = self._create_score_register(config.db_dir, config.event)
         self._clients = set()
 
     @staticmethod
@@ -107,7 +75,13 @@ class Server(object):
         data = {}
         for arena in self._arenas:
             data.update(self._get_data(arena, [
-                SendKeys.EVENT, SendKeys.METADATA, SendKeys.CHALLENGE_INFO, SendKeys.STANDINGS, SendKeys.CURRENT_SCORES,
+                SendKeys.EVENT,
+                SendKeys.TEAMS,
+                SendKeys.CHALLENGES,
+                SendKeys.METADATA,
+                SendKeys.CHALLENGE_INFO,
+                SendKeys.STANDINGS,
+                SendKeys.CURRENT_SCORES,
             ]))
         return data
 
@@ -130,7 +104,6 @@ class Server(object):
         else:
             logging.error("unsupported event: {}", arena_data)
 
-
     async def _on_setting(self, arena: str, setting: dict):
         if SettingKeys.TEAM in setting:
             await self._on_set_team(arena, setting[SettingKeys.TEAM])
@@ -143,36 +116,44 @@ class Server(object):
         #     return
 
     async def _on_set_team(self, arena: str, team: str):
-        self._competition.set_team(arena, team)
+        self._arenastates.set_team(arena, team)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
     async def _on_set_challenge(self, arena: str, challenge: str):
-        self._competition.set_challenge(arena, challenge)
+        self._arenastates.set_challenge(arena, challenge)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CHALLENGE_INFO, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
     async def _on_set_attempt(self, arena: str, challenge: str):
-        self._competition.set_attempt(arena, challenge)
+        self._arenastates.set_attempt(arena, challenge)
         data = self._get_data(arena, [SendKeys.METADATA, SendKeys.CURRENT_SCORES])
         await self._send_data_to_all(data)
 
     def _get_data(self, arena: str, requested_keys: typing.List[str]) -> dict:
-        metadata = self._competition.get_metadata(arena)
-        challenge_info = get_challenge_info_dict(metadata.challenge)
-        score_table = get_challenge_info_dict(metadata.challenge)["score_table"]
-        score = self._score_register.get_score(metadata, score_table)
-        data = {
-            SendKeys.EVENT: self._competition.event,
-            SendKeys.METADATA: metadata.to_dict(),
-            SendKeys.CHALLENGE_INFO: challenge_info,
-            SendKeys.CURRENT_SCORES: score,
-            SendKeys.STANDINGS: standings,
-        }
-        return {arena: {k: v for k, v in data.items() if k in requested_keys}}
+        metadata = self._arenastates.get_metadata(arena)
+        challenge_info = self._competition_info.get_challenge_info(metadata.challenge)
+        data = {}
+        if SendKeys.EVENT in requested_keys:
+            data[SendKeys.EVENT] = self._competition_info.event
+        if SendKeys.TEAMS in requested_keys:
+            data[SendKeys.TEAMS] = self._competition_info.list_teams()
+        if SendKeys.CHALLENGES in requested_keys:
+            data[SendKeys.CHALLENGES] = self._competition_info.list_challenges()
+        if SendKeys.METADATA in requested_keys:
+            data[SendKeys.METADATA] = metadata.to_dict()
+        if SendKeys.CHALLENGE_INFO in requested_keys:
+            data[SendKeys.CHALLENGE_INFO] = challenge_info
+        if SendKeys.CURRENT_SCORES in requested_keys:
+            score_table = challenge_info["score_table"]
+            score = self._score_register.get_score(metadata, score_table)
+            data[SendKeys.CURRENT_SCORES] = score
+        if SendKeys.STANDINGS in requested_keys:
+            data[SendKeys.STANDINGS] = standings
+        return {arena: data}
 
     async def _on_score(self, arena: str, score: typing.Dict[int, int]):
-        metadata = self._competition.get_metadata(arena)  # type: dict
+        metadata = self._arenastates.get_metadata(arena)  # type: dict
         for key, value in score.items():
             self._score_register.register_score(
                 metadata=metadata, score_key=int(key), score_increment=value,
@@ -193,15 +174,22 @@ class Server(object):
 # noinspection PyProtectedMember
 def select_defaults_in_server(server):
     # Set some default values for easy testing
-    server._competition.set_team("A", "Tech United Eindhoven")
-    server._competition.set_challenge("A", "Cocktail party")
-    server._competition.set_attempt("A", 1)
+    server._arenastates.set_team("A", "Tech United Eindhoven")
+    server._arenastates.set_challenge("A", "Cocktail Party")
+    server._arenastates.set_attempt("A", 1)
+
 
 if __name__ == "__main__":
     print("Creating server")
-    data_path = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
-    server = Server(data_path, "RoboCup 2021")
-    select_defaults_in_server(server)
+    import pathlib
+    info_dir = os.path.join(
+        pathlib.Path(__file__).parent.absolute().parent.parent,
+        "test", "data"
+    )
+    db_dir = os.path.join(os.path.expanduser("~"), ".at-home-refbox-data")
+    config = ServerConfig("RoboCup 2021", info_dir, db_dir, 2)
+    server = Server(config)
+    # select_defaults_in_server(server)
     start_server = websockets.serve(server.serve, "localhost", 6789)
 
     print("Starting")

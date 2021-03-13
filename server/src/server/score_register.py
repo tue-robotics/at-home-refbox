@@ -1,38 +1,8 @@
 import threading
 import time
-from collections import namedtuple
 
-from server_types import MetaData, ScoreKeys
+from server_types import MetaData, Record, ScoreKeys
 
-
-RecordData = namedtuple("Record", ["stamp", "event", "metadata", "score_key", "score_increment"])
-
-# noinspection PyClassHasNoInit
-class Record(RecordData):
-    def to_csv_string(self):
-        raw_data = [
-            self.stamp,
-            self.event,
-            self.metadata.team,
-            self.metadata.challenge,
-            self.metadata.attempt,
-            self.score_key,
-            self.score_increment,
-        ]
-        assert not any([";" in str(item) for item in raw_data])
-        data = [str(item) for item in raw_data]
-        result = ";".join(data) + "\n"
-        return result
-
-    @classmethod
-    def from_csv_string(cls, input_str):
-        args = input_str.rstrip().split(";")
-        stamp = float(args[0])
-        event = args[1]
-        meta_data = MetaData(args[2], args[3], int(args[4]))
-        score_key = int(args[5])
-        score_increment = int(args[6])
-        return cls(stamp, event, meta_data, score_key, score_increment)
 
 
 class ScoreRegister(object):

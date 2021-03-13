@@ -2,7 +2,7 @@ import threading
 import time
 from collections import namedtuple
 
-from server_types import MetaData
+from server_types import MetaData, ScoreKeys
 
 
 RecordData = namedtuple("Record", ["stamp", "event", "metadata", "score_key", "score_increment"])
@@ -71,11 +71,17 @@ class ScoreRegister(object):
                 f.writelines([record.to_csv_string()])
 
     def get_score(self, metadata, score_table):
-        result = {item["key"]: 0 for item in score_table}
+        # result = {ScoreKeys.SCORES: {}, ScoreKeys.SUBTOTALS: {}, ScoreKeys.TOTAL: 0}
+        scores = {}
+        # result = {item["key"]: 0 for item in score_table}
         for record in self._cache:  # type: Record
+            # Add attempt to scores
+            if record.metadata.team == metadata.team and record.metadata.challenge == metadata.challenge:
+                if record.metadata.attempt not in scores:
+                    scores[record.metadata.attempt] = {item["key"]: 0 for item in score_table}
             if self._should_update(metadata, score_table, record):
-                result[record.score_key] += record.score_increment
-        return result
+                scores[record.metadata.attempt][record.score_key] += record.score_increment
+        return {ScoreKeys.SCORES: scores}
 
     @staticmethod
     def _should_update(metadata, score_table, record):

@@ -76,3 +76,9 @@ class ChallengeInfoKeys(object):
     SCORE_KEY = "key"
     SCORE_INCREMENT = "scoreIncrement"
     MAX_SCORE = "maxScore"
+
+
+class ScoreKeys(object):
+    SCORES = "scores"
+    SUBTOTALS = "subtotals"
+    TOTAL = "total"

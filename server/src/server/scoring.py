@@ -42,11 +42,31 @@ class LastOrMean(object):
             f"Challenge {record.metadata.challenge} is not equal to previous ({first_record.metadata.challenge})"
 
     def get_scores(self):
+        result = {}
         score_table = self._challenge_info[ChallengeInfoKeys.SCORE_TABLE]
         nr_attempts = self._challenge_info[ChallengeInfoKeys.NR_ATTEMPTS]
-        scores = {attempt: {item["key"]: 0 for item in score_table} for attempt in range(nr_attempts)}
+        scores = {attempt + 1: {item["key"]: 0 for item in score_table} for attempt in range(nr_attempts)}
 
         for record in self._records:  # type: Record
             scores[record.metadata.attempt][record.score_key] += record.score_increment
-        return {ScoreKeys.SCORES: scores}
+        result[ScoreKeys.SCORES] = scores
+
+        subtotals = {}
+        for attempt in range(1, nr_attempts + 1):
+            subtotals[attempt] = sum(scores[attempt].values())
+        result[ScoreKeys.SUBTOTALS] = subtotals
+
+        assert nr_attempts == 2, "LastOrMean only works with two attempts"
+        if subtotals[2] > subtotals[1]:
+            result[ScoreKeys.TOTAL] = subtotals[2]
+        elif self._used_second_attempt():
+            result[ScoreKeys.TOTAL] = (subtotals[1] + subtotals[2])/2.
+            print(f"Used second attempt, total: {result[ScoreKeys.TOTAL]}")
+        else:
+            result[ScoreKeys.TOTAL] = subtotals[1]
+
+        return result
+
+    def _used_second_attempt(self):
+        return any([record.metadata.attempt == 2 for record in self._records])
 

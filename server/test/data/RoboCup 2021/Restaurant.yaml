@@ -1,5 +1,6 @@
 description: "Find the customers trying to get their attention and ask what they would like. Retrieve the orders from the bar and serve them to the customers"
 nr_attempts: 2
+scoringSystem: 'last_or_mean'
 score_table:
 - {description: 'Detect bar', scoreIncrement: 100, maxScore: 100}
 - {description: 'Find waving person', scoreIncrement: 200, maxScore: 600}

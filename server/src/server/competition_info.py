@@ -34,6 +34,7 @@ class CompetitionInfo(object):
                 ChallengeInfoKeys.DESCRIPTION: "",
                 ChallengeInfoKeys.SCORE_TABLE: [],
                 ChallengeInfoKeys.AVAILABLE_ATTEMPTS: [],
+                ChallengeInfoKeys.SCORING_SYSTEM: "",
             }
 
 
@@ -68,8 +69,8 @@ def _extend_info(challenge: str, raw_info: dict) -> dict:
     raw_info[ChallengeInfoKeys.NAME] = challenge
     raw_info[ChallengeInfoKeys.AVAILABLE_ATTEMPTS] = [str(i + 1) for i in range(raw_info[ChallengeInfoKeys.NR_ATTEMPTS])]
     raw_info[ChallengeInfoKeys.SCORE_TABLE] = _add_keys_to_score_table(
-        challenge, raw_info[ChallengeInfoKeys.SCORE_TABLE
-        ])
+        challenge, raw_info[ChallengeInfoKeys.SCORE_TABLE]
+    )
     return raw_info
 
 

@@ -1,0 +1,15 @@
+description: "Navigate to all waypoints while avoiding the obstacles"
+nr_attempts: 3
+scoringSystem: 'mean_drop_worst'
+score_table:
+- {description: 'Enter arena', scoreIncrement: 100, maxScore: 100}
+- {description: 'Avoid small object', scoreIncrement: 100, maxScore: 100}
+- {description: 'Reach first waypoint', scoreIncrement: 100, maxScore: 100}
+- {description: 'Avoid person', scoreIncrement: 100, maxScore: 100}
+- {description: 'Ask person to step aside', scoreIncrement: 200, maxScore: 200}
+- {description: 'Reach second waypoint', scoreIncrement: 100, maxScore: 100}
+- {description: 'Avoid furniture object', scoreIncrement: 100, maxScore: 100}
+- {description: 'Move furniture object', scoreIncrement: 200, maxScore: 200}
+- {description: 'Reach third waypoint', scoreIncrement: 100, maxScore: 100}
+- {description: 'Exit arena', scoreIncrement: 100, maxScore: 100}
+

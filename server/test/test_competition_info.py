@@ -15,6 +15,7 @@ from competition_info import CompetitionInfo, load_challenge_info
 EVENT = "RoboCup 2021"
 DATA_DIR = os.path.join(pathlib.Path(__file__).parent.absolute(), "data")
 
+
 def create_challenge_info():
     info = CompetitionInfo(DATA_DIR, EVENT)
     return info
@@ -30,7 +31,7 @@ def test_list_teams():
 def test_list_challenges():
     info = create_challenge_info()
     challenge_list = info.list_challenges()
-    assert(len(challenge_list) == 2)  # There are two challenge names in the testfile
+    assert(len(challenge_list) == 3)  # There are two challenge names in the testfile
     assert(all([isinstance(item, str) for item in challenge_list]))
 
 
@@ -39,7 +40,7 @@ def test_immutability():
     info.list_teams().append('foo')
     info.list_challenges().append('bar')
     assert(len(info.list_teams()) == 3)
-    assert(len(info.list_challenges()) == 2)
+    assert(len(info.list_challenges()) == 3)
 
 
 def test_get_challenge_info():
@@ -59,6 +60,7 @@ def check_challenge_info(challenge_info):
     assert "name" in challenge_info
     assert "description" in challenge_info
     assert "availableAttempts" in challenge_info
+    assert "scoringSystem" in challenge_info
     assert "score_table" in challenge_info
     check_score_table(challenge_info["score_table"])
 

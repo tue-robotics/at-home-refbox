@@ -48,6 +48,7 @@ class MetaData(object):
 
 RecordData = collections.namedtuple("Record", ["stamp", "event", "metadata", "score_key", "score_increment"])
 
+
 # noinspection PyClassHasNoInit
 class Record(RecordData):
     def to_csv_string(self):
@@ -102,6 +103,7 @@ class ChallengeInfoKeys(object):
     DESCRIPTION = "description"
     AVAILABLE_ATTEMPTS = "availableAttempts"
     NR_ATTEMPTS = "nr_attempts"
+    SCORING_SYSTEM = "scoringSystem"
     SCORE_TABLE = "score_table"
     SCORE_KEY = "key"
     SCORE_INCREMENT = "scoreIncrement"
@@ -112,3 +114,8 @@ class ScoreKeys(object):
     SCORES = "scores"
     SUBTOTALS = "subtotals"
     TOTAL = "total"
+
+
+class ScoringSystem(object):
+    LAST_OR_MEAN = "last_or_mean"
+    MEAN_DROP_WORST = "mean_drop_worst"

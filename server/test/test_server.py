@@ -45,7 +45,7 @@ def _get_score_key(server, idx):
     # noinspection PyProtectedMember
     challenge_info = server._competition_info.get_challenge_info(CHALLENGE)
     score_item = challenge_info[ChallengeInfoKeys.SCORE_TABLE][idx]
-    return score_item[ChallengeInfoKeys.SCORE_KEY]
+    return score_item[ChallengeInfoKeys.SCORE_KEY_RESTAURANT1]
 
 
 class MockSocket(object):
